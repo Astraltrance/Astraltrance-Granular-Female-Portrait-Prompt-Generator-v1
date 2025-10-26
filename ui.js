@@ -55,7 +55,7 @@ class UI {
 // Batch generation button
 const batchBtn = document.getElementById('batch-generate-btn');
 if (batchBtn) {
-    batchBtn.addEventListener('click', () => this.handleBatchGenerate(1000));
+    batchBtn.addEventListener('click', () => this.handleBatchGenerate(10));
 }
 
         // Prompt output changes
@@ -133,7 +133,7 @@ if (batchBtn) {
         }
     }
 // === NEW: Batch Generation ===
-async handleBatchGenerate(count = 1000) {
+async handleBatchGenerate(count = 10) {
     if (!this.isInitialized) {
         this.showStatus('Still initializing, please wait...', 'warning');
         return;
