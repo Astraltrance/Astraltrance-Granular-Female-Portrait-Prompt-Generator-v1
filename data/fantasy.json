@@ -1,0 +1,72 @@
+{
+  "magical_landscapes": [
+    { "name": "enchanted forest", "preposition": "in", "article": "an" },
+    { "name": "mystical grove", "preposition": "in", "article": "a" },
+    { "name": "fairy ring", "preposition": "in", "article": "a" },
+    { "name": "magical clearing", "preposition": "in", "article": "a" },
+    { "name": "crystal cave", "preposition": "in", "article": "a" },
+    { "name": "floating islands", "preposition": "on", "article": "" },
+    { "name": "sky realm", "preposition": "in", "article": "a" },
+    { "name": "celestial garden", "preposition": "in", "article": "a" },
+    { "name": "moonlit glade", "preposition": "in", "article": "a" },
+    { "name": "starlight meadow", "preposition": "in", "article": "a" },
+    { "name": "ethereal realm", "preposition": "in", "article": "an" },
+    { "name": "dreamscape", "preposition": "in", "article": "a" }
+  ],
+  "fantastical_structures": [
+    { "name": "crystal palace", "preposition": "at", "article": "a" },
+    { "name": "floating castle", "preposition": "on", "article": "a" },
+    { "name": "magical tower", "preposition": "in", "article": "a" },
+    { "name": "ancient temple", "preposition": "in", "article": "an" },
+    { "name": "mystical shrine", "preposition": "at", "article": "a" },
+    { "name": "enchanted library", "preposition": "in", "article": "an" },
+    { "name": "wizard's chamber", "preposition": "in", "article": "a" },
+    { "name": "fairy palace", "preposition": "at", "article": "a" },
+    { "name": "dragon's lair", "preposition": "in", "article": "a" },
+    { "name": "magical academy", "preposition": "in", "article": "a" },
+    { "name": "celestial observatory", "preposition": "in", "article": "a" },
+    { "name": "ethereal sanctum", "preposition": "in", "article": "an" }
+  ],
+  "elemental_environments": [
+    { "name": "fire realm", "preposition": "in", "article": "a" },
+    { "name": "water kingdom", "preposition": "in", "article": "a" },
+    { "name": "earth cavern", "preposition": "in", "article": "an" },
+    { "name": "air temple", "preposition": "in", "article": "an" },
+    { "name": "ice palace", "preposition": "in", "article": "an" },
+    { "name": "lightning realm", "preposition": "in", "article": "a" },
+    { "name": "shadow dimension", "preposition": "in", "article": "a" },
+    { "name": "light sanctuary", "preposition": "in", "article": "a" },
+    { "name": "nature shrine", "preposition": "at", "article": "a" },
+    { "name": "storm castle", "preposition": "in", "article": "a" },
+    { "name": "flame garden", "preposition": "in", "article": "a" },
+    { "name": "frost forest", "preposition": "in", "article": "a" }
+  ],
+  "mystical_waters": [
+    { "name": "enchanted lake", "preposition": "in", "article": "an" },
+    { "name": "magical fountain", "preposition": "at", "article": "a" },
+    { "name": "crystal spring", "preposition": "at", "article": "a" },
+    { "name": "rainbow waterfall", "preposition": "at", "article": "a" },
+    { "name": "moonbeam pool", "preposition": "in", "article": "a" },
+    { "name": "starlight river", "preposition": "in", "article": "a" },
+    { "name": "healing waters", "preposition": "in", "article": "" },
+    { "name": "mirror lake", "preposition": "in", "article": "a" },
+    { "name": "sacred pool", "preposition": "in", "article": "a" },
+    { "name": "glowing stream", "preposition": "in", "article": "a" },
+    { "name": "silver lake", "preposition": "in", "article": "a" },
+    { "name": "mystic falls", "preposition": "at", "article": "" }
+  ],
+  "magical_gardens": [
+    { "name": "enchanted garden", "preposition": "in", "article": "an" },
+    { "name": "fairy garden", "preposition": "in", "article": "a" },
+    { "name": "crystal garden", "preposition": "in", "article": "a" },
+    { "name": "moonlight garden", "preposition": "in", "article": "a" },
+    { "name": "starflower meadow", "preposition": "in", "article": "a" },
+    { "name": "rainbow garden", "preposition": "in", "article": "a" },
+    { "name": "magical greenhouse", "preposition": "in", "article": "a" },
+    { "name": "celestial orchard", "preposition": "in", "article": "a" },
+    { "name": "glowing flower field", "preposition": "in", "article": "a" },
+    { "name": "mystical arbor", "preposition": "in", "article": "a" },
+    { "name": "ethereal conservatory", "preposition": "in", "article": "an" },
+    { "name": "dream garden", "preposition": "in", "article": "a" }
+  ]
+}

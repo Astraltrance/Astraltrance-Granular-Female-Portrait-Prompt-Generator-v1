@@ -1,0 +1,29 @@
+{
+  "base_subjects": [
+    "she is",
+    "a",
+    "the"
+  ],
+  "age_descriptors": [
+    "young",
+    "teenage",
+    "mature",
+    "elegant",
+    "youthful"
+  ],
+  "subject_types": [
+    "woman"
+  ],
+  "personality_traits": [
+    "confident",
+    "graceful",
+    "spirited",
+    "serene",
+    "vibrant",
+    "mysterious",
+    "cheerful",
+    "radiant",
+    "bold",
+    "gentle"
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "light_tones": [
+    "fair",
+    "pale",
+    "ivory",
+    "porcelain",
+    "cream",
+    "peach",
+    "rosy",
+    "peachy-pink",
+    "light beige",
+    "vanilla"
+  ],
+  "medium_tones": [
+    "olive",
+    "golden",
+    "honey",
+    "warm beige",
+    "caramel",
+    "tan",
+    "bronze",
+    "amber",
+    "Mediterranean",
+    "sun-kissed"
+  ],
+  "deep_tones": [
+    "rich brown",
+    "mahogany",
+    "ebony",
+    "dark chocolate",
+    "espresso",
+    "cocoa",
+    "chestnut",
+    "walnut",
+    "deep amber",
+    "coffee"
+  ],
+  "undertones": [
+    "warm",
+    "cool",
+    "neutral",
+    "golden",
+    "rosy",
+    "olive",
+    "peachy",
+    "yellow",
+    "pink",
+    "red"
+  ],
+  "skin_qualities": [
+    "smooth",
+    "glowing",
+    "radiant",
+    "luminous",
+    "soft",
+    "silky",
+    "dewy",
+    "matte",
+    "natural",
+    "healthy",
+    "clear",
+    "flawless"
+  ],
+  "lighting_effects": [
+    "sun-kissed",
+    "glowing in natural light",
+    "with warm highlights",
+    "catching the light",
+    "luminous",
+    "softly lit",
+    "naturally radiant",
+    "with golden undertones"
+  ],
+  "texture_descriptors": [
+    "porcelain-smooth",
+    "silk-like",
+    "velvet-soft",
+    "naturally textured",
+    "refined",
+    "delicate",
+    "supple",
+    "pristine"
+  ]
+}

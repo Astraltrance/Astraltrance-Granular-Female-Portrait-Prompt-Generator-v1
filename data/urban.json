@@ -1,0 +1,72 @@
+{
+  "street_settings": [
+    { "name": "city street", "preposition": "on", "article": "a" },
+    { "name": "cobblestone street", "preposition": "on", "article": "a" },
+    { "name": "busy avenue", "preposition": "on", "article": "a" },
+    { "name": "quiet lane", "preposition": "on", "article": "a" },
+    { "name": "alleyway", "preposition": "in", "article": "an" },
+    { "name": "pedestrian street", "preposition": "on", "article": "a" },
+    { "name": "main street", "preposition": "on", "article": "a" },
+    { "name": "side street", "preposition": "on", "article": "a" },
+    { "name": "narrow alley", "preposition": "in", "article": "a" },
+    { "name": "wide boulevard", "preposition": "on", "article": "a" },
+    { "name": "marketplace street", "preposition": "on", "article": "a" },
+    { "name": "shopping district", "preposition": "in", "article": "a" }
+  ],
+  "indoor_spaces": [
+    { "name": "cafe", "preposition": "in", "article": "a" },
+    { "name": "restaurant", "preposition": "in", "article": "a" },
+    { "name": "library", "preposition": "in", "article": "a" },
+    { "name": "bookstore", "preposition": "in", "article": "a" },
+    { "name": "museum", "preposition": "in", "article": "a" },
+    { "name": "art gallery", "preposition": "in", "article": "an" },
+    { "name": "hotel lobby", "preposition": "in", "article": "a" },
+    { "name": "office", "preposition": "in", "article": "an" },
+    { "name": "studio", "preposition": "in", "article": "a" },
+    { "name": "apartment", "preposition": "in", "article": "an" },
+    { "name": "loft", "preposition": "in", "article": "a" },
+    { "name": "penthouse", "preposition": "in", "article": "a" }
+  ],
+  "architectural_settings": [
+    { "name": "historic building", "preposition": "in", "article": "a" },
+    { "name": "modern skyscraper", "preposition": "in", "article": "a" },
+    { "name": "vintage architecture", "preposition": "in", "article": "" },
+    { "name": "art deco building", "preposition": "in", "article": "an" },
+    { "name": "brick building", "preposition": "in", "article": "a" },
+    { "name": "glass tower", "preposition": "in", "article": "a" },
+    { "name": "stone facade", "preposition": "on", "article": "a" },
+    { "name": "colonial building", "preposition": "in", "article": "a" },
+    { "name": "industrial building", "preposition": "in", "article": "an" },
+    { "name": "contemporary structure", "preposition": "in", "article": "a" },
+    { "name": "classical architecture", "preposition": "in", "article": "" },
+    { "name": "minimalist building", "preposition": "in", "article": "a" }
+  ],
+  "public_spaces": [
+    { "name": "park", "preposition": "in", "article": "a" },
+    { "name": "plaza", "preposition": "in", "article": "a" },
+    { "name": "town square", "preposition": "in", "article": "a" },
+    { "name": "courtyard", "preposition": "in", "article": "a" },
+    { "name": "rooftop", "preposition": "on", "article": "a" },
+    { "name": "balcony", "preposition": "on", "article": "a" },
+    { "name": "terrace", "preposition": "on", "article": "a" },
+    { "name": "promenade", "preposition": "on", "article": "a" },
+    { "name": "boardwalk", "preposition": "on", "article": "a" },
+    { "name": "bridge", "preposition": "on", "article": "a" },
+    { "name": "stairs", "preposition": "on", "article": "" },
+    { "name": "entrance", "preposition": "at", "article": "an" }
+  ],
+  "cultural_venues": [
+    { "name": "theater", "preposition": "in", "article": "a" },
+    { "name": "opera house", "preposition": "in", "article": "an" },
+    { "name": "concert hall", "preposition": "in", "article": "a" },
+    { "name": "ballroom", "preposition": "in", "article": "a" },
+    { "name": "gallery", "preposition": "in", "article": "a" },
+    { "name": "studio", "preposition": "in", "article": "a" },
+    { "name": "workshop", "preposition": "in", "article": "a" },
+    { "name": "exhibition space", "preposition": "in", "article": "an" },
+    { "name": "cultural center", "preposition": "in", "article": "a" },
+    { "name": "arts district", "preposition": "in", "article": "an" },
+    { "name": "creative space", "preposition": "in", "article": "a" },
+    { "name": "performance venue", "preposition": "in", "article": "a" }
+  ]
+}

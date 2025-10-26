@@ -1,0 +1,80 @@
+{
+  "emotional_states": [
+    "confident",
+    "serene",
+    "contemplative",
+    "joyful",
+    "mysterious",
+    "elegant",
+    "peaceful",
+    "energetic",
+    "graceful",
+    "intense",
+    "radiant",
+    "dreamy",
+    "bold",
+    "gentle",
+    "dramatic"
+  ],
+  "moment_descriptors": [
+    "captured in a moment of",
+    "exuding",
+    "radiating",
+    "imbued with",
+    "expressing",
+    "displaying",
+    "embodying",
+    "conveying"
+  ],
+  "atmosphere_types": [
+    "elegance",
+    "power",
+    "mystery",
+    "romance",
+    "nostalgia",
+    "wonder",
+    "tranquility",
+    "energy",
+    "sophistication",
+    "charm",
+    "intensity",
+    "grace"
+  ],
+  "time_references": [
+    "timeless",
+    "vintage",
+    "modern",
+    "classic",
+    "contemporary",
+    "historic",
+    "eternal"
+  ],
+  "mood_intensifiers": [
+    "quiet",
+    "deep",
+    "gentle",
+    "profound",
+    "subtle",
+    "striking",
+    "vivid",
+    "soft",
+    "dramatic",
+    "refined"
+  ],
+  "expressions": [
+    "with a subtle knowing smile",
+    "with a soft peaceful expression",
+    "with a slight confident smirk",
+    "with a gentle closed-lip smile",
+    "with a radiant beaming smile",
+    "with a serene calm expression",
+    "with a mysterious slight smile",
+    "with an intense focused expression",
+    "with a joyful bright smile",
+    "with a joyful open smile",
+    "with a contemplative neutral expression",
+    "with a bold fierce expression",
+    "with a playful grin",
+    "with a dignified composed expression"
+  ]
+}

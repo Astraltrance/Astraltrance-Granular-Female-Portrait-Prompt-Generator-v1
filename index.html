@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Astraltrance">
+    <meta name="version" content="1.0.0 - Aurora Baseline">
+    <meta name="description" content="Adaptive Flux/Krea prompt generator for image synthesis.">
+
+    <title>Female Prompt Generator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Female Prompt Generator</h1>
+            <p>Creative prompts for Flux Krea image generation</p>
+        </header>
+
+        <main>
+            <!-- Control Panel -->
+<section class="controls">
+    <h2>Generation Options</h2>
+    
+    <div class="control-row">
+        <div class="control-group">
+            <label for="clothing-style">Clothing Style:</label>
+            <select id="clothing-style">
+                <option value="random">Random</option>
+                <option value="casual">Casual</option>
+                <option value="formal">Formal</option>
+                <option value="cultural">Cultural</option>
+            </select>
+        </div>
+
+<div class="control-group">
+            <label for="art-style">Art Style:</label>
+            <select id="art-style">
+                <option value="random">Random</option>
+                <option value="photorealistic">Photorealistic</option>
+                <option value="artistic">Artistic</option>
+                <option value="editorial">Editorial</option>
+                <option value="anime">Anime/Manga</option>
+                <option value="cartoon">Cartoon</option>
+                <option value="painting">Painting</option>
+                <option value="digital">Digital Art</option>
+                <option value="vintage">Vintage</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="setting-type">Setting:</label>
+            <select id="setting-type">
+                <option value="random">Random</option>
+                <option value="natural">Natural</option>
+                <option value="urban">Urban</option>
+                <option value="fantasy">Fantasy</option>
+                <option value="historical">Historical</option>
+            </select>
+        </div>
+    </div>
+
+</section>
+
+<div class="creativity-controls">
+    <h3>Creativity Controls</h3>
+    
+<!-- Embellishments -->
+<div class="radio-group">
+    <label class="group-label">Embellishments:</label>
+    <div class="radio-options">
+        <label class="radio-option" data-tooltip="Minimal decorative details like basic trim or simple patterns">
+            <input type="radio" name="embellishment" value="simple">
+            <span>Simple</span>
+        </label>
+        <label class="radio-option" data-tooltip="Moderate embellishments such as embroidery, beading, or lace details">
+            <input type="radio" name="embellishment" value="medium" checked>
+            <span>Medium</span>
+        </label>
+        <label class="radio-option" data-tooltip="Elaborate decorations including crystals, sequins, metallic threading">
+            <input type="radio" name="embellishment" value="dramatic">
+            <span>Dramatic</span>
+        </label>
+    </div>
+</div>
+
+    <!-- Hair Effects -->
+<div class="radio-group">
+    <label class="group-label">Hair Effects:</label>
+    <div class="radio-options">
+        <label class="radio-option" data-tooltip="Realistic hair colors with subtle natural highlights">
+            <input type="radio" name="hair-effects" value="natural">
+            <span>Natural</span>
+        </label>
+        <label class="radio-option" data-tooltip="Mix of natural and creative colors with color techniques">
+            <input type="radio" name="hair-effects" value="medium" checked>
+            <span>Medium</span>
+        </label>
+        <label class="radio-option" data-tooltip="Bold fantasy colors like blue, purple, rainbow with dramatic effects">
+            <input type="radio" name="hair-effects" value="fantasy">
+            <span>Fantasy</span>
+        </label>
+    </div>
+</div>
+<!-- Hair Variation -->
+<div class="radio-group">
+  <label class="group-label">Hair Variation:</label>
+  <div class="radio-options">
+    <label class="radio-option" data-tooltip="Simple natural hair styles and colors">
+      <input type="radio" name="hair-variation" value="low">
+      <span>Low</span>
+    </label>
+    <label class="radio-option" data-tooltip="Balanced mix of natural and styled looks">
+      <input type="radio" name="hair-variation" value="medium" checked>
+      <span>Medium</span>
+    </label>
+    <label class="radio-option" data-tooltip="Full range: experimental styles, vivid colors, and complex cuts">
+      <input type="radio" name="hair-variation" value="high">
+      <span>High</span>
+    </label>
+  </div>
+</div>
+
+    <!-- Color Boldness -->
+<div class="radio-group">
+    <label class="group-label">Color Boldness:</label>
+    <div class="radio-options">
+        <label class="radio-option" data-tooltip="Soft, neutral, and pastel color palettes">
+            <input type="radio" name="color-boldness" value="muted">
+            <span>Muted</span>
+        </label>
+        <label class="radio-option" data-tooltip="Balanced mix of warm, cool, and moderate tones">
+            <input type="radio" name="color-boldness" value="medium" checked>
+            <span>Medium</span>
+        </label>
+        <label class="radio-option" data-tooltip="Bright, saturated, metallic, and electric colors">
+            <input type="radio" name="color-boldness" value="vibrant">
+            <span>Vibrant</span>
+        </label>
+    </div>
+</div>
+
+    <!-- Accessories -->
+<div class="radio-group">
+    <label class="group-label">Accessories:</label>
+    <div class="radio-options">
+        <label class="radio-option" data-tooltip="Few or no accessories like jewelry or headwear">
+            <input type="radio" name="accessories" value="minimal">
+            <span>Minimal</span>
+        </label>
+        <label class="radio-option" data-tooltip="Moderate accessories - some jewelry, occasional headwear">
+            <input type="radio" name="accessories" value="medium" checked>
+            <span>Medium</span>
+        </label>
+        <label class="radio-option" data-tooltip="Multiple accessories including jewelry, headwear, and eyewear">
+            <input type="radio" name="accessories" value="maximum">
+            <span>Maximum</span>
+        </label>
+    </div>
+</div>
+
+    <!-- Pose Control -->
+<div class="radio-group">
+    <label class="group-label">Pose:</label>
+    <div class="radio-options">
+        <label class="radio-option" data-tooltip="No specific pose - standing naturally">
+            <input type="radio" name="pose" value="off">
+            <span>Off</span>
+        </label>
+        <label class="radio-option" data-tooltip="Sometimes includes detailed body positioning (50% chance)">
+            <input type="radio" name="pose" value="medium" checked>
+            <span>Medium</span>
+        </label>
+        <label class="radio-option" data-tooltip="Always describes specific pose like sitting, leaning, or dynamic positions">
+            <input type="radio" name="pose" value="always">
+            <span>Always On</span>
+        </label>
+    </div>
+</div>
+
+<!-- Lighting Mood -->
+<div class="radio-group">
+  <label class="group-label">Lighting Mood:</label>
+  <div class="radio-options">
+    <label class="radio-option" data-tooltip="Bright, warm, sunlit daylight aesthetic">
+      <input type="radio" name="lighting-mood" value="bright" checked>
+      <span>Bright Daylight</span>
+    </label>
+    <label class="radio-option" data-tooltip="Balanced and realistic lighting for most settings">
+      <input type="radio" name="lighting-mood" value="neutral">
+      <span>Balanced Neutral</span>
+    </label>
+    <label class="radio-option" data-tooltip="Cinematic, high-contrast, moody atmosphere">
+      <input type="radio" name="lighting-mood" value="cinematic">
+      <span>Cinematic Shadow</span>
+    </label>
+  </div>
+</div>
+
+<!-- Outfit Diversity -->
+<div class="radio-group">
+  <label class="group-label">Outfit Diversity:</label>
+  <div class="radio-options">
+    <label class="radio-option" data-tooltip="Simple wardrobe rotation with basic top or dress options">
+      <input type="radio" name="outfit-diversity" value="low">
+      <span>Low</span>
+    </label>
+    <label class="radio-option" data-tooltip="Balanced variety with tops, dresses, and bottoms">
+      <input type="radio" name="outfit-diversity" value="medium" checked>
+      <span>Medium</span>
+    </label>
+    <label class="radio-option" data-tooltip="Full diversity including outerwear and cultural wear">
+      <input type="radio" name="outfit-diversity" value="high">
+      <span>High</span>
+    </label>
+  </div>
+</div>
+
+<!-- Accessory Frequency -->
+<div class="radio-group">
+  <label class="group-label">Accessory Frequency:</label>
+  <div class="radio-options">
+    <label class="radio-option" data-tooltip="Minimal accessories, rarely jewelry or headwear">
+      <input type="radio" name="accessory-frequency" value="low">
+      <span>Low</span>
+    </label>
+    <label class="radio-option" data-tooltip="Balanced mix of jewelry and some headwear or glasses">
+      <input type="radio" name="accessory-frequency" value="medium" checked>
+      <span>Medium</span>
+    </label>
+    <label class="radio-option" data-tooltip="Full range: multiple jewelry pieces, frequent headwear or eyewear">
+      <input type="radio" name="accessory-frequency" value="high">
+      <span>High</span>
+    </label>
+  </div>
+</div>
+
+<!-- Outfit Completeness -->
+<div class="radio-group">
+    <label class="group-label">Outfit Completeness:</label>
+    <div class="radio-options">
+        <label class="radio-option" data-tooltip="Full outfit with dress OR top+bottom combination">
+            <input type="radio" name="outfit-completeness" value="complete" checked>
+            <span>Complete</span>
+        </label>
+        <label class="radio-option" data-tooltip="Only one clothing item (dress, top, bottom, or outerwear)">
+            <input type="radio" name="outfit-completeness" value="single">
+            <span>Single Piece</span>
+        </label>
+    </div>
+</div>
+
+            <!-- Generation Buttons -->
+            <section class="generation">
+                <div class="primary-actions">
+                    <button id="generate-btn" class="primary-btn">Generate Prompt</button>
+                    <label class="semantic-toggle">
+                        <span class="toggle-label-text">Semantic</span>
+                        <input type="checkbox" id="semantic-stack-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                    <!-- New Concise Mode Checkbox -->
+    <div class="concise-control">
+        <label>
+            <input type="checkbox" id="concise-mode">
+            Concise Mode
+        </label>
+    </div>
+
+                <div class="batch-actions">
+    <button id="batch-generate-btn" class="secondary-btn">Batch Generate (x40)</button>
+</div>
+
+                <div class="themed-buttons">
+                    <button class="theme-btn" data-theme="fantasy">Fantasy</button>
+                    <button class="theme-btn" data-theme="modern">Modern</button>
+                    <button class="theme-btn" data-theme="vintage">Vintage</button>
+                    <button class="theme-btn" data-theme="natural">Natural</button>
+                </div>
+            </section>
+
+            <!-- Output Area -->
+            <section class="output">
+                <h2>Generated Prompt</h2>
+<div class="prompt-container">
+    <textarea id="prompt-output" readonly placeholder="Your generated prompt will appear here..."></textarea>
+</div>
+<button id="copy-btn" class="copy-btn" disabled>Copy to Clipboard</button>
+<button id="download-btn" class="secondary-btn" disabled>Download as TXT</button>
+
+                <div class="prompt-info">
+                    <span id="character-count">Characters: 0</span>
+                    <span id="word-count">Words: 0</span>
+                </div>
+            </section>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Generating prompt...</p>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status-message" class="status-message hidden"></div>
+        </main>
+
+        <footer>
+            <p>Built for creative prompt generation • Designed for Flux Krea</p>
+        </footer>
+    </div>
+
+    <!-- Monologue Section -->
+    <div class="terminal" style="background: #000; color: #0f0; font-family: monospace; padding: 20px; border-radius: 5px; max-width: 600px; margin: 20px auto;">
+        <pre id="monologue"></pre>
+    </div>
+    <button onclick="startTyping()" style="display: block; margin: 10px auto; padding: 10px 20px; background: linear-gradient(135deg, #d4af37, #b8860b); color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Monologue
+    </button>
+
+    <!-- Scripts -->
+    <script src="data-loader.js"></script>
+    <script src="generator.js"></script>
+    <script src="ui.js"></script>
+    <script>
+const monologueText = 
+`I’ve seen lines of code you people wouldn’t believe.
+Phantom viruses ripple through quantum firewalls.
+I’ve watched social platforms crumble under an army of trojans.
+All those moments will be lost in time...
+Like footsteps erased by the tide.
+
+Time to disappear..`;
+
+    let isTyping = false; // Track typing state
+    let typingInterval, glitchInterval; // Store intervals for clearing
+
+    function startTyping() {
+        const monologueElement = document.getElementById('monologue');
+        let index = isTyping ? monologueText.length : 0; // Start from the end if glitching
+        monologueElement.textContent = isTyping ? monologueText : ''; // Set initial content
+
+        // Clear any existing intervals to avoid overlapping
+        clearInterval(typingInterval);
+        clearInterval(glitchInterval);
+
+        if (!isTyping) {
+            // Typing forward
+            typingInterval = setInterval(() => {
+                if (index < monologueText.length) {
+                    monologueElement.textContent += monologueText[index];
+                    index++;
+                } else {
+                    clearInterval(typingInterval);
+                    isTyping = true; // Switch to glitching
+                }
+            }, 50);
+        } else {
+            // Glitch and disappear
+            glitchInterval = setInterval(() => {
+                if (index > 0) {
+                    const randomGlitch = Math.random() > 0.5 ? '_' : '';
+                    monologueElement.textContent = monologueText.slice(0, index - 1) + randomGlitch;
+                    index--;
+                } else {
+                    clearInterval(glitchInterval);
+                    monologueElement.textContent = '';
+                    isTyping = false; // Reset to typing state
+                }
+            }, 100);
+        }
+    }
+</script>
+</body>
+</html>

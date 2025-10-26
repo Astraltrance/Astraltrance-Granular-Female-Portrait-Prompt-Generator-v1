@@ -1,0 +1,55 @@
+{
+  "standing_poses": [
+    "standing in relaxed contrapposto pose with weight on left leg, right hand resting on hip and left arm hanging naturally at side",
+    "standing with arms outstretched and palms facing upward",
+    "standing with one hand touching hair and other hand on waist",
+    "standing with both hands in pockets and shoulders slightly forward",
+    "standing with arms behind back and chin slightly raised",
+    "standing with hands behind the neck and elbows pointing forward",
+    "standing with hands behind the neck and elbows pointing outward",
+    "standing with arms crossed over chest and weight shifted to one leg",
+    "standing with one hand shading eyes and other hand at side",
+    "standing with both arms raised overhead stretching upward",
+    "standing with hands clasped in front at waist level",
+    "standing with one hand on the chest",
+    "standing with one arm extended to the side and other hand on hip",
+    "standing with both hands holding opposite elbows behind back",
+    "standing with one leg slightly bent and hands resting on thighs",
+    "standing with arms behind her back and one foot crossed over the other",
+    "standing with one hand adjusting collar and other arm relaxed at side"
+  ],
+  "sitting_poses": [
+    "sitting on a chair with legs crossed at ankles and hands folded gracefully in lap",
+    "sitting on the edge of a surface with legs crossed and hands resting on knee",
+    "sitting cross-legged with hands resting palms-up on knees",
+    "sitting with one leg bent and foot resting on opposite thigh, hands resting on raised knee",
+    "sitting with one leg tucked under and hands resting on raised knee",
+    "sitting upright with both hands placed flat on surface beside hips",
+    "sitting with one leg crossed over the other and hands resting on thighs",
+    "sitting with legs together and hands clasped in lap",
+    "sitting with legs extended and hands resting on thighs",
+    "sitting sideways with one arm draped over backrest and other hand in lap"
+  ],
+  "leaning_poses": [
+    "leaning casually against a wall with arms crossed and weight on one leg",
+    "leaning forward with both hands placed on a surface in front",
+    "leaning forward with both hands placed on her legs",
+    "leaning to one side with one hand resting on a surface and other arm hanging naturally",
+    "leaning back with both hands supporting from behind",
+    "leaning to one side with one hand on hip and other arm extended for balance"
+  ],
+  "walking_poses": [
+    "walking forward with left leg stepping, right arm swinging forward naturally",
+    "walking with purposeful stride, arms swinging naturally at sides",
+    "walking with slight turn of head to the side, arms swinging naturally",
+    "walking with relaxed posture, arms swinging gently",
+    "walking while looking back over shoulder with natural arm movement"
+  ],
+  "dynamic_poses": [
+    "twirling with arms extended outward and dress flowing",
+    "reaching upward on tiptoes with both arms stretched overhead",
+    "bending forward slightly with hands on knees",
+    "kneeling on one knee with hands resting on raised thigh",
+    "stretching with one arm overhead and other hand on lower back"
+  ]
+}
