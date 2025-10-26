@@ -54,8 +54,21 @@ class UI {
         });
 // Batch generation button
 const batchBtn = document.getElementById('batch-generate-btn');
+const batchSizeInput = document.getElementById('batch-size');
+
 if (batchBtn) {
-    batchBtn.addEventListener('click', () => this.handleBatchGenerate(10));
+    batchBtn.addEventListener('click', () => {
+        const count = parseInt(batchSizeInput?.value || 10, 10);
+        const safeCount = isNaN(count) ? 10 : Math.max(1, Math.min(count, 1000));
+        this.handleBatchGenerate(safeCount);
+    });
+}
+
+if (batchSizeInput) {
+    batchSizeInput.addEventListener('input', () => {
+        const count = parseInt(batchSizeInput.value || 10, 10);
+        batchBtn.textContent = `Batch Generate (x${isNaN(count) ? 10 : count})`;
+    });
 }
 
         // Prompt output changes
@@ -116,7 +129,9 @@ if (batchBtn) {
             this.setButtonsEnabled(false);
 
             const preferences = this.getPreferences();
-            const prompt = await this.promptGenerator.generatePrompt(preferences);
+            const conciseMode = document.getElementById('concise-mode')?.checked;
+const prompt = await this.promptGenerator.generatePrompt(preferences, { concise: conciseMode });
+
             
             this.displayPrompt(prompt);
             this.showStatus('Prompt generated successfully!', 'success');
