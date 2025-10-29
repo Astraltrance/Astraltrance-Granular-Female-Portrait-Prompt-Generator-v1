@@ -318,6 +318,7 @@ if (theme === 'natural' || theme === 'fantasy') {
         const outfitCompleteness = document.querySelector('input[name="outfit-completeness"]:checked').value;
         const lightingMood = document.querySelector('input[name="lighting-mood"]:checked').value;
         const hairVariation = document.querySelector('input[name="hair-variation"]:checked').value;
+        const eyewearMode = document.querySelector('input[name="eyewear-mode"]:checked')?.value || 'random';
         const outfitDiversity = document.querySelector('input[name="outfit-diversity"]:checked').value;
 
 
@@ -332,6 +333,7 @@ if (theme === 'natural' || theme === 'fantasy') {
         preferences.outfitCompleteness = outfitCompleteness; // 'complete' or 'single'
         preferences.outfitDiversity = this.convertToPercentage(outfitDiversity);
         preferences.hairVariation = this.convertToPercentage(hairVariation);
+        preferences.eyewearMode = eyewearMode;
         preferences.lightingMood = lightingMood;
         if (this.semanticStackToggle) {
             preferences.semanticStack = this.semanticStackToggle.checked;

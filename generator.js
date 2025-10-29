@@ -1535,49 +1535,187 @@ if (preferences?.lightingMood === 'cinematic') {
         }
 
 
-        // Eyewear with explicit colors
-        if (includeEyewear && Math.random() * 100 < adjustedDensity * 0.5) {
+// --- Eyewear (v3: strict validation, expanded fashion reclass, safer goggles) ---
+if (includeEyewear && Math.random() * 100 < adjustedDensity * 0.5) {
+  const st = (preferences?.settingType || '').toLowerCase();
+  const isThemed = st === 'historical' || st === 'fantasy';
 
-            const eyewearCategories = ['prescription_glasses', 'sunglasses', 'fashion_eyewear'];
-            const category = this.dataLoader.randomChoice(eyewearCategories);
-            const eyewear = this.dataLoader.getRandomFrom('eyewear.json', category);
-            const frameShape = this.dataLoader.getRandomFrom('eyewear.json', 'frame_shapes');
-            const frameMaterial = this.dataLoader.getRandomFrom('eyewear.json', 'frame_materials');
+  // Weighted category pools
+  const modernPool = [
+    ['sunglasses', 40],
+    ['prescription_glasses', 35],
+    ['fashion_eyewear', 25]
+  ];
+  const themedPool = [
+    ['masks_face_wear', 30],
+    ['specialty_eyewear', 35],  // slightly boosted
+    ['sunglasses', 15],         // slightly reduced
+    ['prescription_glasses', 10],
+    ['fashion_eyewear', 10]
+  ];
+  const pool = isThemed ? themedPool : modernPool;
 
-            // Explicit frame color
-            const frameColors = [
-                'black', 'tortoiseshell', 'clear', 'brown',
-                'gold', 'silver', 'rose gold', 'navy blue'
-            ];
-            const frameColor = this.dataLoader.randomChoice(frameColors);
+  const pickWeighted = (pairs) => {
+    const total = pairs.reduce((s, [, w]) => s + w, 0);
+    let r = Math.random() * total;
+    for (const [name, w] of pairs) {
+      r -= w;
+      if (r <= 0) return name;
+    }
+    return pairs[0][0];
+  };
 
-            // Lens specification
-            let lensType = '';
-            if (category === 'sunglasses') {
-                const lensOptions = [
-                    'with dark tinted lenses',
-                    'with mirrored lenses',
-                    'with gradient lenses',
-                    'with polarized dark lenses'
-                ];
-                lensType = ' ' + this.dataLoader.randomChoice(lensOptions);
-            }
+  const randFrom = (key) => this.dataLoader.getRandomFrom('eyewear.json', key);
 
-            // Positioning - SIMPLIFIED
-            const eyewearPositions = [
-                'worn normally',
-                'pushed up on head',
-            ];
-            const position = this.dataLoader.randomChoice(eyewearPositions);
+  let category = pickWeighted(pool);
+  let eyewear = randFrom(category);
 
-            // SIMPLIFIED DESCRIPTION - don't specify type when not worn
-            if (position === 'worn normally') {
-                accessories.push(`${frameShape} ${frameColor} ${frameMaterial} ${eyewear}${lensType} ${position}`);
-            } else {
-                // Generic "glasses" when not worn
-                accessories.push(`${frameShape} ${frameColor} ${frameMaterial} glasses ${position}`);
-            }
-        }
+  // --- Expanded reclassification (Fix 2) ---
+  if (category === 'prescription_glasses' && eyewear) {
+    const lower = eyewear.toLowerCase();
+    if (/(non[-\s]?prescription|novelty|fashion|decorative|party|costume|theatrical|colored|tinted)/.test(lower)) {
+      category = 'fashion_eyewear';
+    }
+  }
+
+  // fallback if nothing picked
+  if (!eyewear) {
+    for (const [alt] of pool) {
+      eyewear = randFrom(alt);
+      if (eyewear) { category = alt; break; }
+    }
+  }
+
+  // Rare backstop for themed eyewear even in modern contexts
+  if (!isThemed && !eyewear && Math.random() < 0.03) {
+    category = this.dataLoader.randomChoice(['masks_face_wear', 'specialty_eyewear']);
+    eyewear = randFrom(category);
+  }
+
+  if (eyewear) {
+    // helpers
+    const frameShape = this.dataLoader.getRandomFrom('eyewear.json', 'frame_shapes');
+    const frameMaterial = this.dataLoader.getRandomFrom('eyewear.json', 'frame_materials');
+    const frameColors = [
+      'black','tortoiseshell','clear','brown','gold','silver','rose gold','navy blue','smoky gray','matte charcoal'
+    ];
+    const frameColor = this.dataLoader.randomChoice(frameColors);
+    const mood = (preferences?.lightingMood || '').toLowerCase();
+
+    // --- Strict lens pools ---
+    const lensPools = {
+      sunglasses: ['dark','tinted','mirrored','gradient','polarized','photochromic','colored','holographic'],
+      prescription_glasses: ['clear','anti-reflective','blue light blocking','photochromic','tinted'],
+      fashion_eyewear: ['clear','tinted','colored','holographic','anti-reflective'],
+      specialty_eyewear: ['clear','anti-reflective'], // adjusted later for goggles
+      masks_face_wear: []
+    };
+
+    const isGoggles = /(goggle|goggles|aviator goggles|welding goggles|steampunk goggles)/i.test(eyewear);
+const chooseLens = () => {
+  let lensPool = lensPools[category] || [];
+
+  // Specialty eyewear lens assignment
+  if (category === 'specialty_eyewear') {
+    lensPool = isGoggles ? ['tinted','dark','photochromic'] : ['clear','anti-reflective'];
+  }
+
+  // Mood-aware adjustments
+  if (mood === 'cinematic') {
+    lensPool = lensPool
+      .filter(x => !/mirrored|holographic/.test(x))
+      .concat(['tinted','dark','anti-reflective']);
+  } else if (mood === 'bright' && category === 'sunglasses') {
+    lensPool = lensPool.concat(['polarized','gradient','mirrored']);
+  }
+
+  // --- 🌤 Lens Nuance Fix: boost photochromic frequency ---
+  // Adds small bias for natural realism in daylight/cinematic lighting
+  if (['prescription_glasses','sunglasses','fashion_eyewear'].includes(category)) {
+    if (Math.random() < 0.1) {
+      lensPool.push('photochromic');
+    }
+  }
+
+  // Keep holographic rare
+  if (Math.random() < 0.9) lensPool = lensPool.filter(l => l !== 'holographic');
+
+  return lensPool.length ? this.dataLoader.randomChoice(lensPool) : '';
+};
+
+    // --- Final safety validator (Fix 1) ---
+    const validateLens = (cat, item, lens) => {
+      if (!lens) return '';
+      const t = (item || '').toLowerCase();
+      const pools = {
+        sunglasses: new Set(['dark','tinted','mirrored','gradient','polarized','photochromic','colored','holographic']),
+        prescription_glasses: new Set(['clear','anti-reflective','blue light blocking','photochromic','tinted']),
+        fashion_eyewear: new Set(['clear','tinted','colored','holographic','anti-reflective']),
+        specialty_goggles: new Set(['tinted','dark','photochromic']),
+        specialty_plain: new Set(['clear','anti-reflective']),
+        masks_face_wear: new Set()
+      };
+      let allowed;
+      if (cat === 'specialty_eyewear') {
+        allowed = /goggle/.test(t) ? pools.specialty_goggles : pools.specialty_plain;
+      } else {
+        allowed = pools[cat] || new Set();
+      }
+      return allowed.has(lens) ? lens : '';
+    };
+
+    // descriptors
+    const styleDesc = this.dataLoader.getRandomFrom('eyewear.json', 'style_descriptors');
+    const specialFeat = this.dataLoader.getRandomFrom('eyewear.json', 'special_features');
+    let addon = '';
+    const wantStyle = Math.random() < 0.35;
+    const wantFeature = Math.random() < 0.25;
+    if (wantStyle && wantFeature) {
+      addon = Math.random() < 0.6 ? styleDesc : (specialFeat ? `${specialFeat} frames` : '');
+    } else if (wantStyle) {
+      addon = styleDesc || '';
+    } else if (wantFeature) {
+      addon = specialFeat ? `${specialFeat} frames` : '';
+    }
+
+    const parts = [];
+    const add = (s) => { if (s && typeof s === 'string' && s.trim()) parts.push(s.trim()); };
+
+    if (category === 'masks_face_wear') {
+      add([addon, eyewear].filter(Boolean).join(' ').trim());
+    } else if (category === 'specialty_eyewear' && !/goggle|goggles/i.test(eyewear)) {
+      add([addon, eyewear].filter(Boolean).join(' ').trim());
+    } else {
+      const core = [frameShape, frameColor, frameMaterial, eyewear].filter(Boolean).join(' ');
+      add(core);
+      const lens = chooseLens();
+      const safeLens = validateLens(category, eyewear, lens);
+      if (safeLens) add(`with ${safeLens} lenses`);
+      if (addon) add(addon);
+    }
+
+    const eyewearLine = parts.join(' ').replace(/\s+/g, ' ').trim();
+    if (eyewearLine) accessories.push(eyewearLine);
+  }
+
+  // determine if eyewear should be included
+let eyewearChance = adjustedDensity * 0.5;
+
+switch (preferences.eyewearMode) {
+  case 'none':
+    eyewearChance = 0;
+    break;
+  case 'frequent':
+    eyewearChance = adjustedDensity * 1.2; // 20% boost
+    break;
+  default:
+    // random (normal)
+    break;
+}
+
+}
+
+
 
         if (accessories.length === 0) {
             return '';

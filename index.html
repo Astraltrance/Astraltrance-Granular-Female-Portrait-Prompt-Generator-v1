@@ -182,13 +182,13 @@
 <div class="radio-group">
   <label class="group-label">Lighting Mood:</label>
   <div class="radio-options">
-    <label class="radio-option" data-tooltip="Bright, warm, sunlit daylight aesthetic">
-      <input type="radio" name="lighting-mood" value="bright" checked>
-      <span>Bright Daylight</span>
-    </label>
     <label class="radio-option" data-tooltip="Balanced and realistic lighting for most settings">
       <input type="radio" name="lighting-mood" value="neutral">
       <span>Balanced Neutral</span>
+    </label>
+        <label class="radio-option" data-tooltip="Bright, warm, sunlit daylight aesthetic">
+      <input type="radio" name="lighting-mood" value="bright" checked>
+      <span>Bright Daylight</span>
     </label>
     <label class="radio-option" data-tooltip="Cinematic, high-contrast, moody atmosphere">
       <input type="radio" name="lighting-mood" value="cinematic">
@@ -234,6 +234,25 @@
     </label>
   </div>
 </div>
+<!-- Eyewear Control -->
+<div class="radio-group">
+  <label class="group-label">Eyewear:</label>
+  <div class="radio-options">
+    <label class="radio-option" data-tooltip="No eyewear will be generated. Removes glasses, sunglasses, and masks entirely.">
+      <input type="radio" name="eyewear-mode" value="none">
+      <span>No Eyewear</span>
+    </label>
+        <label class="radio-option" data-tooltip="Balanced eyewear generation. Uses normal random weighting for sunglasses, glasses, or masks.">
+      <input type="radio" name="eyewear-mode" value="random" checked>
+      <span>Random</span>
+    </label>
+    <label class="radio-option" data-tooltip="Encourages more eyewear. Increases the chance of sunglasses, glasses, or masks.">
+      <input type="radio" name="eyewear-mode" value="frequent">
+      <span>Frequent</span>
+    </label>
+  </div>
+</div>
+
 
 <!-- Outfit Completeness -->
 <div class="radio-group">
