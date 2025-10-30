@@ -136,5 +136,29 @@
     "bow details",
     "button details",
     "contrast trim"
+  ],
+  "fit_styles": [
+    "fitted",
+    "tailored",
+    "A-line",
+    "fit-and-flare",
+    "empire waist",
+    "bodycon",
+    "bias-cut",
+    "draped",
+    "flowing",
+    "voluminous"
+  ],
+  "details_features": [
+    "lace trim",
+    "ruffled hem",
+    "pleated skirt",
+    "bow accent",
+    "tiered layers",
+    "button details",
+    "ribbon belt",
+    "embroidered bodice",
+    "beaded waistband",
+    "sheer overlay"
   ]
 }
