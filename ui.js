@@ -129,10 +129,8 @@ if (batchSizeInput) {
             this.setButtonsEnabled(false);
 
             const preferences = this.getPreferences();
-            const conciseMode = document.getElementById('concise-mode')?.checked;
-const prompt = await this.promptGenerator.generatePrompt(preferences, { concise: conciseMode });
+            const prompt = await this.promptGenerator.generatePrompt(preferences);
 
-            
             this.displayPrompt(prompt);
             this.showStatus('Prompt generated successfully!', 'success');
             
@@ -158,12 +156,12 @@ async handleBatchGenerate(count = 10) {
     this.setButtonsEnabled(false);
 
     const preferences = this.getPreferences();
-    const conciseMode = document.getElementById('concise-mode')?.checked;
+    //const prompt = await this.promptGenerator.generatePrompt(preferences);
     let allPrompts = [];
 
     try {
         for (let i = 0; i < count; i++) {
-            const prompt = await this.promptGenerator.generatePrompt(preferences, { concise: conciseMode });
+            const prompt = await this.promptGenerator.generatePrompt(preferences);
             // If semantic mode is enabled, reformat accordingly
             const formattedPrompt = preferences.semanticStack
                 ? this.promptGenerator.transformPromptFormat(prompt, { semanticStack: true })

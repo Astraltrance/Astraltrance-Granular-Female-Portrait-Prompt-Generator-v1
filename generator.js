@@ -82,38 +82,19 @@
         return '';
     }
 
-    renderPrompt(components, { useSemanticStack = false, concise = false } = {}) {
-        if (!components) {
-            return '';
-        }
-
-        const promptResult = useSemanticStack
-            ? this.assembleSemanticStack(components)
-            : this.assemblePrompt(components);
-
-        this.updateLastState(components, promptResult, useSemanticStack);
-
-        if (concise) {
-            return this.buildConcisePrompt(components);
-        }
-
-        return promptResult;
+renderPrompt(components, { useSemanticStack = false } = {}) {
+    if (!components) {
+        return '';
     }
 
-    buildConcisePrompt(components) {
-        const conciseParts = [
-            components.subject,
-            components.pose,
-            components.face,
-            components.hair,
-            components.clothing,
-            components.accessories,
-            components.setting,
-            components.lighting
-        ].filter(Boolean);
+    const promptResult = useSemanticStack
+        ? this.assembleSemanticStack(components)
+        : this.assemblePrompt(components);
 
-        return this.sanitizePromptText(conciseParts.join(', '));
-    }
+    this.updateLastState(components, promptResult, useSemanticStack);
+
+    return promptResult;
+}
 
     updateLastState(components, promptResult, useSemanticStack) {
         this.lastComponents = { ...components };
@@ -134,7 +115,6 @@
 
         return this.renderPrompt(components, {
             useSemanticStack,
-            concise: !!options.concise
         });
     }
 
@@ -153,7 +133,6 @@
             const components = this.buildPromptComponents(normalizedPreferences);
             const prompt = this.renderPrompt(components, {
                 useSemanticStack: !!normalizedPreferences.semanticStack,
-                concise: !!options.concise
             });
 
             if (options.includeComponents) {
@@ -437,6 +416,34 @@ if (diversity > 80) {
 
 
     // NEW: Build cohesive multi-piece outfits when requested
+    // --- NEW: Pick style descriptors that match lighting tone ---
+pickStyleDescriptorForTone(lightingMood = '') {
+  const all = this.dataLoader.getAllFrom('clothing.json', 'style_descriptors') || [];
+  if (!all.length) return '';
+
+  const mood = (lightingMood || '').toLowerCase();
+
+  const brightBias = [
+    'fresh','playful','minimalist','modern','romantic',
+    'chic','youthful','vibrant','lively','graceful','elegant'
+  ];
+  const cineBias = [
+    'dramatic','sophisticated','edgy','refined','avant-garde',
+    'bold','powerful','mysterious','timeless','polished'
+  ];
+
+  const containsAny = (word, arr) => arr.some(x => word.toLowerCase().includes(x));
+
+  let weighted = [];
+  for (const d of all) {
+    if (mood === 'bright' && containsAny(d, brightBias)) weighted.push(d, d);   // double weight
+    else if (mood === 'cinematic' && containsAny(d, cineBias)) weighted.push(d, d);
+    weighted.push(d); // always include base weight
+  }
+
+  return this.dataLoader.randomChoice(weighted);
+}
+
     generateCompleteOutfit(preferences = {}) {
         const segments = [];
         const diversity = typeof preferences?.outfitDiversity === 'number'
@@ -508,7 +515,7 @@ if (diversity > 80) {
             }
         }
 
-        const styleDescriptor = this.dataLoader.getRandomFrom('clothing.json', 'style_descriptors');
+const styleDescriptor = this.pickStyleDescriptorForTone(preferences?.lightingMood);
         if (styleDescriptor) {
             segments.push(`creating a ${styleDescriptor} look`);
         }
@@ -606,7 +613,13 @@ descriptor = descriptor.replace(/\b(muted|soft|neutrals?)\b/gi, (m) => {
     // NEW: Helper method to generate a dress
     generateDress(preferences = {}) {
     const category = this.dataLoader.randomChoice(['dress_types', 'formal_dresses', 'casual_dresses']);
-    const clothingItem = this.dataLoader.getRandomFrom('dresses.json', category);
+let clothingItem = this.dataLoader.getRandomFrom('dresses.json', category);
+
+// --- Fallback: use clothing.json.garment_types.dresses if dresses.json empty ---
+if (!clothingItem) {
+    const pool = this.dataLoader.getAllFrom('clothing.json', 'garment_types')?.dresses || [];
+    clothingItem = this.dataLoader.randomChoice(pool) || 'dress';
+}
     const featureDescription = this.describeGarmentFeatures({
         file: 'dresses.json',
         necklineKey: 'neckline_options',
@@ -619,9 +632,15 @@ descriptor = descriptor.replace(/\b(muted|soft|neutrals?)\b/gi, (m) => {
 }
 
     // NEW: Helper method to generate a top
-    generateTop(preferences = {}) {
+generateTop(preferences = {}) {
     const category = this.dataLoader.randomChoice(['basic_tops', 'dressy_tops', 'casual_tops']);
-    const clothingItem = this.dataLoader.getRandomFrom('tops.json', category);
+    let clothingItem = this.dataLoader.getRandomFrom('tops.json', category);
+
+    // --- Fallback: if tops.json missing or empty, use clothing.json.garment_types.tops ---
+    if (!clothingItem) {
+        const pool = this.dataLoader.getAllFrom('clothing.json', 'garment_types')?.tops || [];
+        clothingItem = this.dataLoader.randomChoice(pool) || 'top';
+    }
     const featureDescription = this.describeGarmentFeatures({
         file: 'tops.json',
         necklineKey: 'neckline_styles',
@@ -634,17 +653,111 @@ descriptor = descriptor.replace(/\b(muted|soft|neutrals?)\b/gi, (m) => {
 }
 
     // NEW: Helper method to generate bottoms
+// === Bottoms Generator v2 (2025-10-30 logic upgrade) ===
 generateBottom(preferences = {}) {
-    const category = this.dataLoader.randomChoice(['skirt_types', 'pants_types', 'jeans_styles']);
-    const clothingItem = this.dataLoader.getRandomFrom('bottoms.json', category);
+    const USE_BOTTOMS_V2 = true; // quick safety toggle
 
-    return this.assembleSingleGarment(clothingItem, '', preferences, 'bottom');
+    if (!USE_BOTTOMS_V2) {
+        // fallback to legacy behaviour
+        const category = this.dataLoader.randomChoice(['skirt_types', 'pants_types', 'jeans_styles']);
+        let clothingItem = this.dataLoader.getRandomFrom('bottoms.json', category);
+        if (!clothingItem) {
+            const pool = this.dataLoader.getAllFrom('clothing.json', 'garment_types')?.bottoms || [];
+            clothingItem = this.dataLoader.randomChoice(pool) || 'pants';
+        }
+        return this.assembleSingleGarment(clothingItem, '', preferences, 'bottom');
+    }
+
+    // --- V2 full logic ---
+    const diversity = preferences?.outfitDiversity ?? 50;
+    const stylePref = (preferences?.clothingStyle || '').toLowerCase();
+
+    // Weighted category pool
+    const baseCategories = [
+        { key: 'skirt_types', weight: 28 },
+        { key: 'pants_types', weight: 26 },
+        { key: 'jeans_styles', weight: 24 },
+        { key: 'shorts_types', weight: 14 },
+        { key: 'leggings_tights', weight: 8 }
+    ];
+
+    // Adjust weights by diversity
+    if (diversity >= 70) {
+        baseCategories.find(c => c.key === 'shorts_types').weight += 4;
+        baseCategories.find(c => c.key === 'leggings_tights').weight += 4;
+    } else if (diversity <= 35) {
+        baseCategories.find(c => c.key === 'shorts_types').weight -= 4;
+        baseCategories.find(c => c.key === 'leggings_tights').weight -= 4;
+    }
+
+    // Adjust by style
+    if (stylePref === 'formal') {
+        baseCategories.find(c => c.key === 'shorts_types').weight -= 6;
+        baseCategories.find(c => c.key === 'leggings_tights').weight -= 4;
+        baseCategories.find(c => c.key === 'skirt_types').weight += 4;
+        baseCategories.find(c => c.key === 'pants_types').weight += 4;
+    } else if (stylePref === 'casual') {
+        baseCategories.find(c => c.key === 'shorts_types').weight += 4;
+        baseCategories.find(c => c.key === 'jeans_styles').weight += 4;
+        baseCategories.find(c => c.key === 'leggings_tights').weight += 2;
+    }
+
+    // Weighted pick
+    const total = baseCategories.reduce((s, c) => s + Math.max(c.weight, 0), 0);
+    let pick = Math.random() * total;
+    let category = baseCategories[0].key;
+    for (const c of baseCategories) {
+        pick -= Math.max(c.weight, 0);
+        if (pick <= 0) { category = c.key; break; }
+    }
+
+    // Get base clothing item
+    let clothingItem = this.dataLoader.getRandomFrom('bottoms.json', category);
+
+    // Fallback if empty
+    if (!clothingItem) {
+        const pool = this.dataLoader.getAllFrom('clothing.json', 'garment_types')?.bottoms || [];
+        clothingItem = this.dataLoader.randomChoice(pool) || 'pants';
+    }
+
+    // --- Add waist & length descriptors (context-aware) ---
+    const waist = this.dataLoader.getRandomFrom('bottoms.json', 'waist_styles');
+    const length = this.dataLoader.getRandomFrom('bottoms.json', 'lengths');
+
+    const lowerItem = (clothingItem || '').toLowerCase();
+    const alreadyHasWaist = /(waist|rise)/i.test(lowerItem);
+    const alreadyHasLength = /(mini|midi|maxi|ankle|cropped|7\/8|capri|knee|bermuda|floor|full-length|length)/i.test(lowerItem);
+
+    const addWaist =
+        waist && !alreadyHasWaist &&
+        /(skirt|pants|jeans|shorts|legging|tights)/i.test(lowerItem);
+    const addLength =
+        length && !alreadyHasLength &&
+        /(skirt|pants|jeans|legging|tights)/i.test(lowerItem) &&
+        !/shorts/.test(lowerItem);
+
+    if (addWaist && Math.random() < 0.8) {
+        clothingItem = `${waist} ${clothingItem}`;
+    }
+
+    if (addLength && Math.random() < 0.6) {
+        clothingItem = `${length} ${clothingItem}`;
+    }
+
+    // Return through normal assembler (keeps fabrics/colors/etc.)
+    return this.assembleSingleGarment(clothingItem.trim(), '', preferences, 'bottom');
 }
 
     // NEW: Helper method to generate outerwear
     generateOuterwear(preferences = {}) {
         const category = this.dataLoader.randomChoice(['coat_types', 'jacket_styles', 'elegant_wraps']);
-        const clothingItem = this.dataLoader.getRandomFrom('outerwear.json', category);
+let clothingItem = this.dataLoader.getRandomFrom('outerwear.json', category);
+
+// --- Fallback: use clothing.json.garment_types.outerwear if outerwear.json empty ---
+if (!clothingItem) {
+    const pool = this.dataLoader.getAllFrom('clothing.json', 'garment_types')?.outerwear || [];
+    clothingItem = this.dataLoader.randomChoice(pool) || 'jacket';
+}
 
         return this.assembleSingleGarment(clothingItem, '', preferences, 'outerwear');
     }
@@ -663,6 +776,45 @@ generateBottom(preferences = {}) {
     assembleSingleGarment(clothingItem, necklineAndSleeves, preferences = {}, garmentType = 'outfit') {
         const descriptor = this.getGarmentDescriptor(garmentType, clothingItem);
         let fabric = this.dataLoader.getRandomFrom('clothing.json', 'fabric_types');
+        // --- NEW: Fabric-Texture mapping with compatibility + safe fallback ---
+const chooseCompatibleTexture = (fabricName) => {
+  const f = (fabricName || '').toLowerCase();
+
+  const inAny = (list) => list.some(x => f.includes(x));
+  const families = {
+    knit: ['jersey','knit','ribbed knit','cable knit','interlock','french terry','sweatshirt fleece'],
+    sheer: ['chiffon','organza','lace','tulle','georgette','mesh','tulle netting','point d\'esprit'],
+    woven: ['cotton','linen','poplin','twill','denim','chambray','oxford','gabardine','broadcloth','voile','batiste','lawn'],
+    leather: ['leather','faux leather','patent leather','vinyl','pvc','rubber','latex'],
+    luxe: ['silk','satin','velvet','brocade','jacquard','taffeta']
+  };
+
+  const textureBank = this.dataLoader.getAllFrom('clothing.json', 'fabric_textures');
+  if (!Array.isArray(textureBank) || textureBank.length === 0) return '';
+
+  let allow = [];
+  if (inAny(families.knit)) {
+    allow = ['ribbed','chunky','tight-knit','loose-knit','textured','soft','matte'];
+  } else if (inAny(families.sheer)) {
+    allow = ['sheer','semi-transparent','delicate','fine','gossamer','wispy','lightweight'];
+  } else if (inAny(families.leather)) {
+    allow = ['glossy','matte','embossed','smooth'];
+  } else if (inAny(families.luxe)) {
+    allow = ['silky','satiny','velvety','lustrous','glossy','matte'];
+  } else if (inAny(families.woven)) {
+    allow = ['matte','brushed','crisp','smooth','textured','pleated'];
+  }
+
+  const present = textureBank.filter(t => allow.includes(t.toLowerCase()));
+  const pick = (present.length ? present : textureBank);
+  if (Math.random() < 0.25) return ''; // small chance to skip texture
+  const chosen = this.dataLoader.randomChoice(pick);
+  return chosen ? chosen.toLowerCase() : '';
+};
+
+let appliedTexture = chooseCompatibleTexture(fabric);
+const willUseDataTexture = !!appliedTexture;
+
         // --- Clothing Fit + Detail Expansion ---
         const pickDescriptor = (source) => {
             if (!source || source.length !== 2) return '';
@@ -707,30 +859,21 @@ generateBottom(preferences = {}) {
             clothingItem += `, ${descriptorText}`;
         }
 
-        // --- Fabric Surface / Condition Expansion ---
-        const surfaceDescriptors = [
-            'matte finish',
-            'soft sheen',
-            'subtle gloss',
-            'semi-transparent overlay',
-            'sheer texture',
-            'iridescent coating',
-            'brushed surface',
-            'weathered texture',
-            'satin reflection',
-            'velvety texture',
-            'micro-pleated surface',
-            'delicate shimmer',
-            'fine weave detail',
-            'light diffusing surface'
-        ];
+ // --- Fabric Surface / Condition Expansion (prefers dataset texture; falls back to internal) ---
+const surfaceDescriptors = [
+  'matte finish', 'soft sheen', 'subtle gloss', 'semi-transparent overlay', 'sheer texture',
+  'iridescent coating', 'brushed surface', 'weathered texture', 'satin reflection',
+  'velvety texture', 'micro-pleated surface', 'delicate shimmer', 'fine weave detail',
+  'light diffusing surface'
+];
 
-        if (Math.random() < 0.6) {
-            const surface = this.dataLoader.randomChoice(surfaceDescriptors);
-            if (surface) {
-                clothingItem += `, ${surface}`;
-            }
-        }
+if (willUseDataTexture) {
+  clothingItem += `, ${appliedTexture} texture`;
+} else if (Math.random() < 0.6) {
+  const surface = this.dataLoader.randomChoice(surfaceDescriptors);
+  if (surface) clothingItem += `, ${surface}`;
+}
+
 
         // --- Fabric Compatibility Filter ---
         const incompatible = {
@@ -1125,9 +1268,17 @@ if (preferences?.lightingMood === 'cinematic') {
         return 'top';
     }
 
-    describeGarmentFeatures({ file, necklineKey, sleeveKey, clothingItem, garmentType }) {
-        const necklineOptions = this.dataLoader.getAllFrom(file, necklineKey);
-        const sleeveOptions = this.dataLoader.getAllFrom(file, sleeveKey);
+describeGarmentFeatures({ file, necklineKey, sleeveKey, clothingItem, garmentType }) {
+    let necklineOptions = this.dataLoader.getAllFrom(file, necklineKey);
+    let sleeveOptions = this.dataLoader.getAllFrom(file, sleeveKey);
+
+    // --- NEW: Fallback to clothing.json if per-file pools are missing or empty ---
+    if (!Array.isArray(necklineOptions) || necklineOptions.length === 0) {
+        necklineOptions = this.dataLoader.getAllFrom('clothing.json', 'necklines');
+    }
+    if (!Array.isArray(sleeveOptions) || sleeveOptions.length === 0) {
+        sleeveOptions = this.dataLoader.getAllFrom('clothing.json', 'sleeve_types');
+    }
 
         let neckline = this.dataLoader.randomChoice(necklineOptions);
         let sleeve = this.dataLoader.randomChoice(sleeveOptions);
