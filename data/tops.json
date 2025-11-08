@@ -103,17 +103,27 @@
     "A-line"
   ],
   "details_features": [
-    "button-front",
-    "zip-up",
-    "wrap-style",
-    "tie-front",
-    "pleated",
-    "ruffled",
-    "embroidered",
-    "beaded",
-    "lace trim",
-    "contrast piping",
-    "pockets",
-    "belted"
-  ]
+  "button-front",
+  "zip-up",
+  "wrap-style",
+  "tie-front",
+  "pleated",
+  "ruffled",
+  "embroidered",
+  "beaded",
+  "lace trim",
+  "contrast piping",
+  "pockets",
+  "belted",
+  "sheer panels",
+  "satin finish",
+  "silk texture",
+  "knit weave",
+  "lightweight cotton",
+  "crinkled texture",
+  "semi-transparent fabric",
+  "fine stitching",
+  "decorative hem",
+  "mesh insert"
+]
 }

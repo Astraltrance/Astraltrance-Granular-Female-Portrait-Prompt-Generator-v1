@@ -7,6 +7,7 @@
     "wool coat",
     "fur coat",
     "puffer coat",
+    "merino coat",
     "down coat",
     "winter coat",
     "rain coat",
@@ -19,6 +20,7 @@
     "bomber jacket",
     "denim jacket",
     "leather jacket",
+    "field jacket",
     "moto jacket",
     "utility jacket",
     "military jacket",
@@ -48,6 +50,7 @@
     "oversized cardigan",
     "belted cardigan",
     "open cardigan",
+    "shawl cardigan",
     "button-up cardigan",
     "wrap cardigan",
     "duster cardigan",
@@ -137,4 +140,35 @@
     "weather-resistant",
     "insulated coat"
   ]
+  ,
+"details_features": [
+  "belted waist",
+  "contrast stitching",
+  "decorative buttons",
+  "epaulets",
+  "padded shoulders",
+  "fur-trimmed collar",
+  "quilted panels",
+  "double-breasted front",
+  "cuffed sleeves",
+  "pocket flaps",
+  "adjustable belt",
+  "metallic zipper",
+  "storm flap",
+  "reinforced seams",
+  "contrast lining",
+  "tailored silhouette"
+],
+"embellishments": [
+  "embroidered lapel",
+  "metal buttons",
+  "fur trim",
+  "lace appliqué",
+  "decorative piping",
+  "contrast lining",
+  "beaded edging",
+  "leather patches",
+  "stud detailing",
+  "fabric overlay"
+]
 }
