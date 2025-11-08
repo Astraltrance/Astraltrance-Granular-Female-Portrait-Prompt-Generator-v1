@@ -445,6 +445,13 @@ pickStyleDescriptorForTone(lightingMood = '') {
 }
 
     generateCompleteOutfit(preferences = {}) {
+       // --- Garment detectors (robust) ---
+const TOP_RE = /\b(top|blouse|shirt|button[- ]?up|buttondown|button[- ]?down|tee|t[- ]?shirt|tank|camisole|bodysuit|polo|henley|sweater|hoodie|cardigan|pullover|corset|tunic|dress|gown)\b/i;
+
+const OUTER_RE = /\b(coat|overcoat|trench coat|puffer coat|parka|anorak|jacket|blazer|moto jacket|leather jacket|denim jacket|outerwear)\b/i;
+
+const BOTTOM_RE = /\b(skirt|skort|pants|jeans|trousers|shorts|culottes|capris|leggings|joggers|cargo|chinos|palazzo|wide[- ]?leg|flare pants)\b/i;
+ 
         const segments = [];
         const diversity = typeof preferences?.outfitDiversity === 'number'
             ? preferences.outfitDiversity
@@ -507,6 +514,26 @@ pickStyleDescriptorForTone(lightingMood = '') {
         if (Math.random() * 100 < outerwearChance) {
             pushConnected(this.generateOuterwear(preferences), connectors.layer);
         }
+// --- DETAIL REBALANCE RULE (2025-11) ---
+// Simplify inner garments if outerwear is present
+const hasOuterwear = segments.some(s => s && OUTER_RE.test(s));
+if (hasOuterwear) {
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i] && TOP_RE.test(segments[i])) {
+      segments[i] = segments[i].split(',')[0].trim();
+    }
+  }
+}
+// --- OUTFIT ORDER RULE (2025-11) ---
+// Ensure outerwear follows top/dress but comes before bottoms
+const topIndex    = segments.findIndex(s => s && TOP_RE.test(s));
+const coatIndex   = segments.findIndex(s => s && OUTER_RE.test(s));
+const bottomIndex = segments.findIndex(s => s && BOTTOM_RE.test(s));
+
+if (topIndex > -1 && coatIndex > -1 && bottomIndex > -1 && coatIndex > bottomIndex) {
+  const coatSegment = segments.splice(coatIndex, 1)[0];
+  segments.splice(topIndex + 1, 0, coatSegment);
+}
 
         if (diversity > 65 && Math.random() < 0.35) {
             const garmentDetail = this.dataLoader.getRandomFrom('clothing.json', 'garment_details');
@@ -514,6 +541,20 @@ pickStyleDescriptorForTone(lightingMood = '') {
                 segments.push(`${connectors.finish} ${garmentDetail}`);
             }
         }
+// --- HAIR DETAIL REBALANCE RULE (2025-11) ---
+// If headwear is present, simplify hairstyle description
+const hasHeadwear = segments.some(
+    s => s && /hat|cap|beret|beanie|headband|headscarf|turban|veil|hood/i.test(s)
+);
+
+if (hasHeadwear) {
+    for (let i = 0; i < segments.length; i++) {
+        if (/hair|hairstyle|locks|braid|ponytail|bun|shag|pixie|bob/i.test(segments[i])) {
+            // Keep only color and length before the first comma
+            segments[i] = segments[i].split(',')[0].trim();
+        }
+    }
+}
 
 const styleDescriptor = this.pickStyleDescriptorForTone(preferences?.lightingMood);
         if (styleDescriptor) {
@@ -1583,111 +1624,78 @@ describeGarmentFeatures({ file, necklineKey, sleeveKey, clothingItem, garmentTyp
     }
 
     // UPDATED: Generate accessories with explicit colors and materials
-    generateAccessories(preferences = {}) {
-        const accessories = [];
-        const accessoryDensity = preferences.accessoryDensityChance || 60;
-        const frequency = typeof preferences?.accessoryFrequency === 'number'
-            ? preferences.accessoryFrequency
-            : 50;
+    // UPDATED: Generate accessories via separate modes (jewelry/headwear) + independent eyewear
+generateAccessories(preferences = {}) {
+  const accessories = [];
 
-        let adjustedDensity = accessoryDensity;
-        if (frequency > 80) {
-            adjustedDensity = accessoryDensity * 1.4;
-        } else if (frequency < 40) {
-            adjustedDensity = accessoryDensity * 0.6;
-        }
-        adjustedDensity = Math.max(10, Math.min(100, adjustedDensity));
+  // --- Jewelry control ---
+  const jewelryMode = preferences.jewelryMode || 'random';
+  if (jewelryMode === 'on' || (jewelryMode === 'random' && Math.random() < 0.5)) {
+    const j = this.generateJewelry();
+    if (j) accessories.push(j);
+  }
 
-        // --- Accessory Load Balancer ---
-            // 🎩 [PATCH] Headwear Suppression + Accessory Caps
+  // --- Headwear control ---
+  const headwearMode = preferences.headwearMode || 'random';
+  if (headwearMode === 'on' || (headwearMode === 'random' && Math.random() < 0.4)) {
+    const h = this.generateHeadwear();
+    if (h) accessories.push(h);
+  }
 
-        let includeJewelry = true;
-        let includeHeadwear = true;
-        let includeEyewear = true;
+  // --- Eyewear handled by its own control (none/random/frequent) ---
+if (preferences.eyewearMode && preferences.eyewearMode !== 'none') {
+  const e = this.generateEyewear(preferences);
+  if (e) accessories.push(e);
+}
 
-            if (preferences.accessoryFrequency < 40) {
-        includeHeadwear = false; // Prevent headwear entirely in minimal mode
-    }
+  if (!accessories.length) return '';
+  return `adorned with ${accessories.join(', ')}`;
+}
 
-    // 🧢 Accessory Cap Logic by Mode
-    if (preferences.accessoryFrequency >= 85 && accessories.length > 3) {
-        accessories.splice(3); // cap to 3 accessories
-    }
-    if (preferences.accessoryFrequency <= 65 && accessories.length > 2) {
-        accessories.splice(2); // cap to 2 accessories
-    }
-    
-        if (frequency > 80 && Math.random() < 0.8) {
-            const disableOne = this.dataLoader.randomChoice(['jewelry', 'headwear', 'eyewear']);
-            if (disableOne === 'jewelry') includeJewelry = false;
-            if (disableOne === 'headwear') includeHeadwear = false;
-            if (disableOne === 'eyewear') includeEyewear = false;
-        }
+generateJewelry() {
+  const jewelryType = this.dataLoader.randomChoice([
+    'necklace_types', 'earring_styles', 'bracelet_types', 'ring_varieties'
+  ]);
+  const jewelry = this.dataLoader.getRandomFrom('jewelry.json', jewelryType);
+  const metal = this.dataLoader.getRandomFrom('jewelry.json', 'jewelry_metals');
+  const style = this.dataLoader.getRandomFrom('jewelry.json', 'jewelry_styles');
+  const gemstone = this.dataLoader.getRandomFrom('jewelry.json', 'gemstones');
 
-        // Jewelry
-        if (includeJewelry && Math.random() * 100 < adjustedDensity) {
-            const jewelryType = this.dataLoader.randomChoice(['necklace_types', 'earring_styles', 'bracelet_types', 'ring_varieties']);
-            const jewelry = this.dataLoader.getRandomFrom('jewelry.json', jewelryType);
-            const metal = this.dataLoader.getRandomFrom('jewelry.json', 'jewelry_metals');
-            const style = this.dataLoader.getRandomFrom('jewelry.json', 'jewelry_styles');
-            const gemstone = this.dataLoader.getRandomFrom('jewelry.json', 'gemstones');
+  if (!jewelry || !metal || !style) return '';
 
-            // Add placement for specific jewelry types
-            let placement = '';
-            if (jewelryType === 'bracelet_types') {
-                placement = this.dataLoader.randomChoice([' on left wrist', ' on right wrist', ' on both wrists']);
-            } else if (jewelryType === 'ring_varieties') {
-                placement = this.dataLoader.randomChoice([' on left hand', ' on right hand', ' on both hands']);
-            }
+  // Minimal, clean phrasing to avoid visual clutter
+  const parts = [`${style} ${metal} ${jewelry}`.trim()];
+  if (gemstone && Math.random() < 0.5) parts.push(`with ${gemstone} accents`);
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+generateHeadwear() {
+  const category = this.dataLoader.randomChoice([
+    'casual_hats', 'formal_hats', 'hair_accessories', 'crowns_tiaras'
+  ]);
+  const headwear = this.dataLoader.getRandomFrom('headwear.json', category);
+  const material = this.dataLoader.getRandomFrom('headwear.json', 'materials');
+  const style = this.dataLoader.getRandomFrom('headwear.json', 'style_descriptors');
+  const position = this.dataLoader.getRandomFrom('headwear.json', 'positioning');
 
-            accessories.push(`${style} ${metal} ${jewelry} with ${gemstone} stones${placement}`);
-        }
+  if (!headwear) return '';
 
-        // Headwear with explicit color and material
-        if (includeHeadwear && Math.random() * 100 < adjustedDensity * 0.75) {
-            const headwearCategories = ['casual_hats', 'formal_hats', 'hair_accessories', 'crowns_tiaras'];
-            const category = this.dataLoader.randomChoice(headwearCategories);
-            const headwear = this.dataLoader.getRandomFrom('headwear.json', category);
-            const material = this.dataLoader.getRandomFrom('headwear.json', 'materials');
-            const style = this.dataLoader.getRandomFrom('headwear.json', 'style_descriptors');
+  const parts = [];
+  if (material) parts.push(material);
+  if (style) parts.push(style);
+  parts.push(headwear);
+  const base = parts.filter(Boolean).join(' ').trim();
 
-            // Get explicit color for headwear
-            const headwearColors = [
-                'black', 'white', 'navy blue', 'burgundy', 'cream',
-                'rose pink', 'emerald green', 'royal blue', 'silver', 'gold'
-            ];
-            const color = this.dataLoader.randomChoice(headwearColors);
+  return position ? `${base}, ${position}` : base;
+}
+generateEyewear(preferences = {}) {
+  // Respect Eyewear control strictly
+  const mode = preferences.eyewearMode || 'random';
+  if (mode === 'none') return '';
 
-            // Add positioning
-            const positions = [
-                'positioned centered on head',
-                'tilted to the right side',
-                'tilted to the left side',
-                'pushed back on head',
-                'nestled in hair',
-                'across forehead'
-            ];
-            const position = this.dataLoader.randomChoice(positions);
+  // Base chance if random; higher if frequent
+  const baseChance = (mode === 'frequent') ? 0.8 : 0.35;
+  if (mode === 'random' && Math.random() > baseChance) return '';
 
-            // Add decorative elements for certain headwear
-            let decoration = '';
-            if (category === 'formal_hats' || category === 'crowns_tiaras') {
-                const decorations = [
-                    ' with black netting veil',
-                    ' with white feather accent',
-                    ' with pearl embellishments',
-                    ' with ribbon bow',
-                    ' with floral appliqué'
-                ];
-                decoration = this.dataLoader.randomChoice(decorations);
-            }
-
-            accessories.push(`${color} ${material} ${style} ${headwear}${decoration} ${position}`);
-        }
-
-
-// --- Eyewear (v3: strict validation, expanded fashion reclass, safer goggles) ---
-if (includeEyewear && Math.random() * 100 < adjustedDensity * 0.5) {
   const st = (preferences?.settingType || '').toLowerCase();
   const isThemed = st === 'historical' || st === 'fantasy';
 
@@ -1699,8 +1707,8 @@ if (includeEyewear && Math.random() * 100 < adjustedDensity * 0.5) {
   ];
   const themedPool = [
     ['masks_face_wear', 30],
-    ['specialty_eyewear', 35],  // slightly boosted
-    ['sunglasses', 15],         // slightly reduced
+    ['specialty_eyewear', 35],
+    ['sunglasses', 15],
     ['prescription_glasses', 10],
     ['fashion_eyewear', 10]
   ];
@@ -1721,158 +1729,77 @@ if (includeEyewear && Math.random() * 100 < adjustedDensity * 0.5) {
   let category = pickWeighted(pool);
   let eyewear = randFrom(category);
 
-  // --- Expanded reclassification (Fix 2) ---
-  if (category === 'prescription_glasses' && eyewear) {
-    const lower = eyewear.toLowerCase();
-    if (/(non[-\s]?prescription|novelty|fashion|decorative|party|costume|theatrical|colored|tinted)/.test(lower)) {
-      category = 'fashion_eyewear';
-    }
+// --- 🎯 Improved Eyewear Fallback System (v2025-11) ---
+if (!eyewear) {
+  // Retry across related pools first
+  for (const [alt] of pool) {
+    eyewear = randFrom(alt);
+    if (eyewear) { category = alt; break; }
   }
-
-  // fallback if nothing picked
-  if (!eyewear) {
-    for (const [alt] of pool) {
-      eyewear = randFrom(alt);
-      if (eyewear) { category = alt; break; }
-    }
-  }
-
-  // Rare backstop for themed eyewear even in modern contexts
-  if (!isThemed && !eyewear && Math.random() < 0.03) {
-    category = this.dataLoader.randomChoice(['masks_face_wear', 'specialty_eyewear']);
-    eyewear = randFrom(category);
-  }
-
-  if (eyewear) {
-    // helpers
-    const frameShape = this.dataLoader.getRandomFrom('eyewear.json', 'frame_shapes');
-    const frameMaterial = this.dataLoader.getRandomFrom('eyewear.json', 'frame_materials');
-    const frameColors = [
-      'black','tortoiseshell','clear','brown','gold','silver','rose gold','navy blue','smoky gray','matte charcoal'
-    ];
-    const frameColor = this.dataLoader.randomChoice(frameColors);
-    const mood = (preferences?.lightingMood || '').toLowerCase();
-
-    // --- Strict lens pools ---
-    const lensPools = {
-      sunglasses: ['dark','tinted','mirrored','gradient','polarized','photochromic','colored','holographic'],
-      prescription_glasses: ['clear','anti-reflective','blue light blocking','photochromic','tinted'],
-      fashion_eyewear: ['clear','tinted','colored','holographic','anti-reflective'],
-      specialty_eyewear: ['clear','anti-reflective'], // adjusted later for goggles
-      masks_face_wear: []
-    };
-
-    const isGoggles = /(goggle|goggles|aviator goggles|welding goggles|steampunk goggles)/i.test(eyewear);
-const chooseLens = () => {
-  let lensPool = lensPools[category] || [];
-
-  // Specialty eyewear lens assignment
-  if (category === 'specialty_eyewear') {
-    lensPool = isGoggles ? ['tinted','dark','photochromic'] : ['clear','anti-reflective'];
-  }
-
-  // Mood-aware adjustments
-  if (mood === 'cinematic') {
-    lensPool = lensPool
-      .filter(x => !/mirrored|holographic/.test(x))
-      .concat(['tinted','dark','anti-reflective']);
-  } else if (mood === 'bright' && category === 'sunglasses') {
-    lensPool = lensPool.concat(['polarized','gradient','mirrored']);
-  }
-
-  // --- 🌤 Lens Nuance Fix: boost photochromic frequency ---
-  // Adds small bias for natural realism in daylight/cinematic lighting
-  if (['prescription_glasses','sunglasses','fashion_eyewear'].includes(category)) {
-    if (Math.random() < 0.1) {
-      lensPool.push('photochromic');
-    }
-  }
-
-  // Keep holographic rare
-  if (Math.random() < 0.9) lensPool = lensPool.filter(l => l !== 'holographic');
-
-  return lensPool.length ? this.dataLoader.randomChoice(lensPool) : '';
-};
-
-    // --- Final safety validator (Fix 1) ---
-    const validateLens = (cat, item, lens) => {
-      if (!lens) return '';
-      const t = (item || '').toLowerCase();
-      const pools = {
-        sunglasses: new Set(['dark','tinted','mirrored','gradient','polarized','photochromic','colored','holographic']),
-        prescription_glasses: new Set(['clear','anti-reflective','blue light blocking','photochromic','tinted']),
-        fashion_eyewear: new Set(['clear','tinted','colored','holographic','anti-reflective']),
-        specialty_goggles: new Set(['tinted','dark','photochromic']),
-        specialty_plain: new Set(['clear','anti-reflective']),
-        masks_face_wear: new Set()
-      };
-      let allowed;
-      if (cat === 'specialty_eyewear') {
-        allowed = /goggle/.test(t) ? pools.specialty_goggles : pools.specialty_plain;
-      } else {
-        allowed = pools[cat] || new Set();
-      }
-      return allowed.has(lens) ? lens : '';
-    };
-
-    // descriptors
-    const styleDesc = this.dataLoader.getRandomFrom('eyewear.json', 'style_descriptors');
-    const specialFeat = this.dataLoader.getRandomFrom('eyewear.json', 'special_features');
-    let addon = '';
-    const wantStyle = Math.random() < 0.35;
-    const wantFeature = Math.random() < 0.25;
-    if (wantStyle && wantFeature) {
-      addon = Math.random() < 0.6 ? styleDesc : (specialFeat ? `${specialFeat} frames` : '');
-    } else if (wantStyle) {
-      addon = styleDesc || '';
-    } else if (wantFeature) {
-      addon = specialFeat ? `${specialFeat} frames` : '';
-    }
-
-    const parts = [];
-    const add = (s) => { if (s && typeof s === 'string' && s.trim()) parts.push(s.trim()); };
-
-    if (category === 'masks_face_wear') {
-      add([addon, eyewear].filter(Boolean).join(' ').trim());
-    } else if (category === 'specialty_eyewear' && !/goggle|goggles/i.test(eyewear)) {
-      add([addon, eyewear].filter(Boolean).join(' ').trim());
-    } else {
-      const core = [frameShape, frameColor, frameMaterial, eyewear].filter(Boolean).join(' ');
-      add(core);
-      const lens = chooseLens();
-      const safeLens = validateLens(category, eyewear, lens);
-      if (safeLens) add(`with ${safeLens} lenses`);
-      if (addon) add(addon);
-    }
-
-    const eyewearLine = parts.join(' ').replace(/\s+/g, ' ').trim();
-    if (eyewearLine) accessories.push(eyewearLine);
-  }
-
-  // determine if eyewear should be included
-let eyewearChance = adjustedDensity * 0.5;
-
-switch (preferences.eyewearMode) {
-  case 'none':
-    eyewearChance = 0;
-    break;
-  case 'frequent':
-    eyewearChance = adjustedDensity * 1.2; // 20% boost
-    break;
-  default:
-    // random (normal)
-    break;
 }
 
+// Absolute last resort: fashion eyewear (visually safe)
+if (!eyewear) {
+  category = 'fashion_eyewear';
+  eyewear = randFrom(category);
+}
+if (!eyewear) return ''; // still nothing — exit gracefully
+
+// === Build attributes using dataset ===
+const frameShape = this.dataLoader.getRandomFrom('eyewear.json', 'frame_shapes');
+const frameMaterial = this.dataLoader.getRandomFrom('eyewear.json', 'frame_materials');
+
+// --- Adaptive Frame Color Pool ---
+const colorSources = this.dataLoader.getAllFrom('eyewear.json', 'special_features');
+const frameColor = colorSources.length
+  ? this.dataLoader.randomChoice(colorSources)
+  : this.dataLoader.randomChoice(['black','clear','gold','silver','brown','rose gold','gunmetal']);
+
+// --- Lens Logic by Category & Lighting ---
+const lensOptions = this.dataLoader.getAllFrom('eyewear.json', 'lens_types');
+let lensType = '';
+const mood = (preferences?.lightingMood || '').toLowerCase();
+
+if (category === 'masks_face_wear') {
+  lensType = ''; // masks don’t have lenses
+} else {
+  const isCinematic = mood === 'cinematic';
+  const isBright = mood === 'bright';
+  const categoryFilter = {
+    sunglasses: ['dark','tinted','mirrored','gradient','polarized','photochromic'],
+    prescription_glasses: ['clear','anti-reflective','photochromic','blue light blocking'],
+    fashion_eyewear: ['clear','tinted','colored','anti-reflective','gradient'],
+    specialty_eyewear: ['clear','tinted','photochromic','dark']
+  };
+  const lensPool = (categoryFilter[category] || lensOptions).filter(l => lensOptions.includes(l));
+  lensType = this.dataLoader.randomChoice(lensPool);
+
+  // Mood tuning
+  if (isCinematic && /mirrored|holographic/.test(lensType)) lensType = 'tinted';
+  if (isBright && category === 'sunglasses' && Math.random() < 0.4) lensType = 'polarized';
 }
 
+const styleDesc = this.dataLoader.getRandomFrom('eyewear.json', 'style_descriptors');
+const wearingStyle = this.dataLoader.getRandomFrom('eyewear.json', 'wearing_styles');
 
+// === Construct clean description ===
+let descriptionParts = [
+  frameShape, frameMaterial, eyewear,
+  lensType ? `with ${lensType} lenses` : '',
+  frameColor ? `featuring ${frameColor} finish` : '',
+  styleDesc ? styleDesc : '',
+  wearingStyle ? wearingStyle : ''
+];
 
-        if (accessories.length === 0) {
-            return '';
-        }
+// Remove blanks and tidy punctuation
+const eyewearDescription = descriptionParts
+  .filter(Boolean)
+  .join(' ')
+  .replace(/\s+/g, ' ')
+  .replace(/ ,/g, ',')
+  .trim();
 
-        return `adorned with ${accessories.join(', ')}`;
+return eyewearDescription;
     }
 
     // NEW: Generate camera details

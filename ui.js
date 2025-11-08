@@ -310,13 +310,16 @@ if (theme === 'natural' || theme === 'fantasy') {
         const embellishment = document.querySelector('input[name="embellishment"]:checked').value;
         const hairEffects = document.querySelector('input[name="hair-effects"]:checked').value;
         const colorBoldness = document.querySelector('input[name="color-boldness"]:checked').value;
-        const accessories = document.querySelector('input[name="accessories"]:checked').value;
-        const accessoryFrequency = document.querySelector('input[name="accessory-frequency"]:checked').value;
+        
+        
         const pose = document.querySelector('input[name="pose"]:checked').value;
         const outfitCompleteness = document.querySelector('input[name="outfit-completeness"]:checked').value;
         const lightingMood = document.querySelector('input[name="lighting-mood"]:checked').value;
         const hairVariation = document.querySelector('input[name="hair-variation"]:checked').value;
         const eyewearMode = document.querySelector('input[name="eyewear-mode"]:checked')?.value || 'random';
+        preferences.jewelryMode = document.querySelector('input[name="jewelry"]:checked').value;
+        preferences.headwearMode = document.querySelector('input[name="headwear"]:checked').value;
+
         const outfitDiversity = document.querySelector('input[name="outfit-diversity"]:checked').value;
 
 
@@ -325,8 +328,7 @@ if (theme === 'natural' || theme === 'fantasy') {
         preferences.embellishmentChance = this.convertToPercentage(embellishment);
         preferences.hairEffectsChance = this.convertToPercentage(hairEffects);
         preferences.colorBoldnessChance = this.convertToPercentage(colorBoldness);
-        preferences.accessoryDensityChance = this.convertToPercentage(accessories);
-        preferences.accessoryFrequency = this.convertToPercentage(accessoryFrequency);
+        
         preferences.poseControl = pose; // 'off', 'medium', or 'always'
         preferences.outfitCompleteness = outfitCompleteness; // 'complete' or 'single'
         preferences.outfitDiversity = this.convertToPercentage(outfitDiversity);
