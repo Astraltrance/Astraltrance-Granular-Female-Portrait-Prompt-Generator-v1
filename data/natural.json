@@ -20,7 +20,7 @@
     { "name": "stream", "preposition": "at", "article": "a" },
     { "name": "waterfall", "preposition": "at", "article": "a" },
     { "name": "pond", "preposition": "at", "article": "a" },
-    { "name": "ocean", "preposition": "at", "article": "an" },
+    { "name": "ocean", "preposition": "at", "article": "the" },
     { "name": "seaside", "preposition": "at", "article": "the" },
     { "name": "riverbank", "preposition": "at", "article": "a" },
     { "name": "lakeside", "preposition": "at", "article": "a" },

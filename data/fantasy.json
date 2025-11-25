@@ -41,20 +41,20 @@
     { "name": "flame garden", "preposition": "in", "article": "a" },
     { "name": "frost forest", "preposition": "in", "article": "a" }
   ],
-  "mystical_waters": [
-    { "name": "enchanted lake", "preposition": "in", "article": "an" },
-    { "name": "magical fountain", "preposition": "at", "article": "a" },
-    { "name": "crystal spring", "preposition": "at", "article": "a" },
-    { "name": "rainbow waterfall", "preposition": "at", "article": "a" },
-    { "name": "moonbeam pool", "preposition": "in", "article": "a" },
-    { "name": "starlight river", "preposition": "in", "article": "a" },
-    { "name": "healing waters", "preposition": "in", "article": "" },
-    { "name": "mirror lake", "preposition": "in", "article": "a" },
-    { "name": "sacred pool", "preposition": "in", "article": "a" },
-    { "name": "glowing stream", "preposition": "in", "article": "a" },
-    { "name": "silver lake", "preposition": "in", "article": "a" },
-    { "name": "mystic falls", "preposition": "at", "article": "" }
-  ],
+"mystical_waters": [
+  { "name": "enchanted lake", "preposition": "at", "article": "an" },
+  { "name": "magical fountain", "preposition": "at", "article": "a" },
+  { "name": "crystal spring", "preposition": "at", "article": "a" },
+  { "name": "rainbow waterfall", "preposition": "at", "article": "a" },
+  { "name": "moonbeam pool", "preposition": "at", "article": "a" },
+  { "name": "starlight river", "preposition": "at", "article": "a" },
+  { "name": "healing waters", "preposition": "at", "article": "" },
+  { "name": "mirror lake", "preposition": "at", "article": "a" },
+  { "name": "sacred pool", "preposition": "at", "article": "a" },
+  { "name": "glowing stream", "preposition": "at", "article": "a" },
+  { "name": "silver lake", "preposition": "at", "article": "a" },
+  { "name": "mystic falls", "preposition": "at", "article": "" }
+],
   "magical_gardens": [
     { "name": "enchanted garden", "preposition": "in", "article": "an" },
     { "name": "fairy garden", "preposition": "in", "article": "a" },

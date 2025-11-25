@@ -1,0 +1,28 @@
+{
+  "sunhats": [
+    "straw sunhat",
+    "wide-brim straw hat",
+    "raffia sun hat",
+    "packable fabric sunhat",
+    "floppy beach hat"
+  ],
+  "bags": [
+    "woven raffia beach bag",
+    "straw tote",
+    "canvas beach tote",
+    "mesh beach bag"
+  ],
+  "extras": [
+    "lightweight beach scarf",
+    "shell necklace",
+    "anklet",
+    "beach towel draped over arm",
+    "sunscreen tube in hand"
+  ],
+  "footwear": [
+    "flip-flops",
+    "leather sandals",
+    "rope-strap sandals",
+    "espadrille sandals"
+  ]
+}

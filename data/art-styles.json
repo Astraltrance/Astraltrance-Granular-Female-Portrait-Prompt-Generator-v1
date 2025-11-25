@@ -69,8 +69,21 @@
     "classical painting",
     "mixed media",
     "ink painting"
-    
   ],
+  "painterly_techniques": [
+  "visible brushstrokes",
+  "textured impasto",
+  "soft blended edges",
+  "layered pigment blending",
+  "canvas texture emphasis"
+],
+"painterly_color_palettes": [
+  "earthy warm palette",
+  "muted pastel palette",
+  "vibrant impressionist palette",
+  "deep baroque tones",
+  "dreamy watercolor wash"
+],
   "artistic_movements": [
     "impressionism",
     "expressionism",
@@ -112,6 +125,19 @@
     "vintage color",
     "aged photograph",
     "historical"
+  ],
+  "anime_techniques": [
+    "cel-shaded", 
+    "clean lineart", 
+    "flat colors", 
+    "bold outlines", 
+    "limited shading"
+  ],
+  "anime_color_palettes": [
+    "soft pastel palette", 
+    "high-key vibrant palette", 
+    "limited color palette", 
+    "duotone palette"
   ],
 "artistic_techniques": [
     "soft focus effect",

@@ -1,0 +1,60 @@
+{
+  "swimwear_types": [
+    "bikini",
+    "string bikini",
+    "halter bikini",
+    "triangle bikini",
+    "high-waisted bikini",
+    "bandeau bikini",
+    "sport bikini",
+    "tankini",
+    "monokini",
+    "one-piece swimsuit",
+    "cut-out swimsuit",
+    "strapless swimsuit",
+    "backless swimsuit",
+    "high-leg swimsuit",
+    "scoop-back swimsuit"
+  ],
+  "coverups": [
+    "sarong wrap",
+    "beach wrap",
+    "kaftan coverup",
+    "kimono coverup",
+    "sheer tunic",
+    "mesh dress coverup",
+    "crochet coverup",
+    "linen beach shirt"
+  ],
+  "materials": [
+    "nylon",
+    "spandex",
+    "lycra",
+    "polyester blend",
+    "microfiber",
+    "mesh",
+    "stretch fabric"
+  ],
+  "patterns": [
+    "tropical print",
+    "floral print",
+    "striped",
+    "polka dot",
+    "ombre gradient",
+    "animal print",
+    "tie-dye",
+    "solid"
+  ],
+  "details": [
+    "string ties",
+    "side ties",
+    "front knot",
+    "ruched sides",
+    "ribbon straps",
+    "halter neck",
+    "plunging neckline",
+    "cut-out details",
+    "ring accents",
+    "gold hardware"
+  ]
+}
