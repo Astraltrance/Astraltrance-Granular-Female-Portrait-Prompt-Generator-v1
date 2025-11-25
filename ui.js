@@ -317,6 +317,8 @@ if (theme === 'natural' || theme === 'fantasy') {
         const lightingMood = document.querySelector('input[name="lighting-mood"]:checked').value;
         const hairVariation = document.querySelector('input[name="hair-variation"]:checked').value;
         const eyewearMode = document.querySelector('input[name="eyewear-mode"]:checked')?.value || 'random';
+        const fashionLogicEl = document.querySelector('input[name="fashion-logic"]:checked');
+        preferences.fashionLogic = fashionLogicEl ? (fashionLogicEl.value === 'on') : false;
         preferences.jewelryMode = document.querySelector('input[name="jewelry"]:checked').value;
         preferences.headwearMode = document.querySelector('input[name="headwear"]:checked').value;
 

@@ -21,12 +21,13 @@
         }
     }
 
-    normalizePreferences(preferences = {}) {
-        const normalized = { ...preferences };
-        normalized.settingType = normalized.settingType || 'natural';
-        normalized.poseControl = normalized.poseControl || 'medium';
-        return normalized;
-    }
+// normalizePreferences
+normalizePreferences(preferences = {}) {
+  const normalized = { ...preferences };
+  normalized.settingType = normalized.settingType || 'natural';
+  normalized.poseControl = normalized.poseControl || 'medium';
+  return normalized;
+}
 
     backfillPreferenceDefaults(target, normalized) {
         if (!target || typeof target !== 'object' || !normalized) {
@@ -44,7 +45,7 @@
 
     buildPromptComponents(preferences = {}) {
         const pose = this.resolvePose(preferences.poseControl);
-        const settingData = this.generateSetting(preferences.settingType) || {
+        const settingData = this.generateSetting(preferences.settingType, preferences) || {
             description: 'an undefined setting',
             hasTrees: false
         };
@@ -54,9 +55,9 @@
         this.lastGeneratedClothing = clothing;
 
         const components = {
-            subject: this.generateSubject(),
+            subject: this.generateSubject(preferences),
             pose,
-            face: this.generateFace(),
+            face: this.generateFace(preferences),
             hair,
             clothing,
             accessories: this.generateAccessories(preferences),
@@ -66,7 +67,12 @@
             artStyle: this.generateArtStyle(preferences.artStyle, preferences),
             mood: this.generateMood(preferences)
         };
-
+// === ANIME SUBJECT AGE FIX (pre-filter) ===
+if (this.isAnimeActive(preferences, preferences.artStyle)) {
+  if (components.subject) {
+    components.subject = components.subject.replace(/\bmature\b/gi, 'young');
+  }
+}
         return components;
     }
 
@@ -91,9 +97,11 @@ renderPrompt(components, { useSemanticStack = false } = {}) {
         ? this.assembleSemanticStack(components)
         : this.assemblePrompt(components);
 
-    this.updateLastState(components, promptResult, useSemanticStack);
+    // ✅ Sanitize the final text to remove duplicates and surface contradictions
+    const finalPrompt = this.sanitizePromptText(promptResult);
 
-    return promptResult;
+    this.updateLastState(components, finalPrompt, useSemanticStack);
+    return finalPrompt;
 }
 
     updateLastState(components, promptResult, useSemanticStack) {
@@ -102,6 +110,227 @@ renderPrompt(components, { useSemanticStack = false } = {}) {
         this.lastSemantic = useSemanticStack;
         this.lastGeneratedClothing = components?.clothing || '';
     }
+
+isAnimeActive(preferences, artStyleText = '') {
+  const p = (preferences?.artStyle || '').toLowerCase();
+  const a = (artStyleText || '').toLowerCase();
+  return /anime|manga|seinen|shoujo|kawaii/.test(p) || /anime|manga|seinen|shoujo|kawaii/.test(a);
+}
+
+// Minimal subject adaptor: remove “mature” anchor without losing dignity
+// === strong auto-replacement of “mature” anchor ===
+adaptSubjectForAnime(subject) {
+  if (!subject) return subject;
+
+  // hard replacement of problematic age words that trigger realism
+  return subject
+    .replace(/\bmature\b/gi, 'young')
+    .replace(/\bmiddle[-\s]?aged\b/gi, 'adult')
+    .replace(/\bolder\b/gi, 'elegant')
+    .replace(/\baged\b/gi, 'adult')
+    .replace(/\bsenior\b/gi, 'graceful adult')
+    .trim();
+}
+
+// Hard filters for realism language that commonly overpowers anime
+stripRealism(text) {
+  if (!text) return text;
+  return text
+    // fabric & surface fetish terms
+    .replace(/\b(jacquard|brocade|satin reflection|matte finish|weathered texture|velvety texture|micro-pleated|iridescent coating|subsurface scattering|specular|bokeh|photorealistic|ultra[-\s]?realistic|photo[-\s]?quality)\b/gi,'')
+    // hyper photographic lighting
+    .replace(/\b(dappled light|bright daylight|golden-hour|high-definition|documentary style|studio photography|editorial photography|fashion photography|natural (?:light )?photography)\b/gi,'')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+// Keep silhouette + simple color, drop material chemistry
+simplifyClothingForAnime(clothing) {
+  if (!clothing) return clothing;
+  // keep from "wearing ..." up to neckline/sleeves and first color phrase
+  // then stop before textures/pattern apparatus
+  const keep = clothing
+    .replace(/,?\s*in\s+[^,]+/i, '') // remove "in bright gold satin..." chunk
+    .replace(/,?\s*(with|featuring)\s+[^,]*(pattern|embellish|texture)[^,]*/gi, '')
+    .replace(/,\s*(matte|soft sheen|subtle gloss|brushed surface|sheer|iridescent|velvety|pleated|micro-pleated|shimmer|fine weave|light diffusing surface)[^,]*/gi, '');
+  return keep;
+}
+
+// Lighting that reads “drawn” immediately
+animeLighting(preferences = {}) {
+  const palette = this.dataLoader.getRandomFrom('art-styles.json', 'anime_color_palettes')
+               || this.dataLoader.randomChoice(['soft pastel palette','limited color palette','high-key vibrant palette']);
+  const technique = this.dataLoader.getRandomFrom('art-styles.json', 'anime_techniques')
+                 || this.dataLoader.randomChoice(['cel-shaded','clean lineart','flat colors']);
+  return `${technique} lighting, soft gradient background, ${palette}`;
+}
+
+// --- Unified Anime / Cartoon Style Tail (v2 optimized) ---
+hardenAnimeArtStyle(artStyleTail = '') {
+  // Pick techniques and palette from data files or fallbacks
+  const tech = this.dataLoader.getRandomFrom('art-styles.json', 'anime_techniques')
+    || this.dataLoader.randomChoice(['cel-shaded', 'clean lineart', 'flat colors', 'bold outlines']);
+  const palette = this.dataLoader.getRandomFrom('art-styles.json', 'anime_color_palettes')
+    || this.dataLoader.randomChoice(['limited color palette', 'soft pastel palette']);
+
+  // Detect if the tail or preferences reference a cartoon
+  const isCartoon = /cartoon|toon|animated|2d/i.test(artStyleTail);
+
+  // Choose the correct style label
+  const styleLabel = isCartoon ? 'cartoon style' : 'anime style';
+
+  // Optional small variation for natural phrasing
+  const variant = this.dataLoader.randomChoice([
+    `illustrated in ${styleLabel}`,
+    `depicted in ${styleLabel}`,
+    `rendered in ${styleLabel}`,
+    `drawn in ${styleLabel}`,
+  ]);
+
+  // Construct the final art style descriptor
+  return `${variant}, ${tech}, ${palette}${artStyleTail ? ', ' + artStyleTail : ''}`;
+}
+
+
+// === 🎨 Painterly Mode v1 (Realism-to-Painting Translator) ===
+isPaintingActive(preferences, artStyleText = '') {
+  const p = (preferences?.artStyle || '').toLowerCase();
+  const a = (artStyleText || '').toLowerCase();
+  return /(painting|painterly|oil painting|watercolor|acrylic)/.test(p) ||
+         /(painting|painterly|oil painting|watercolor|acrylic)/.test(a);
+}
+
+// === 🎌 Anime Profile Wrapper ===
+applyAnimeProfile(components, preferences = {}) {
+  if (!components) return;
+
+  // 1️⃣ Age normalization
+  if (components.subject) {
+    components.subject = this.adaptSubjectForAnime(components.subject);
+  }
+
+  // 2️⃣ Simplify hyper-realistic clothing phrasing
+  if (components.clothing) {
+    components.clothing = this.simplifyClothingForAnime(components.clothing);
+  }
+
+  // 3️⃣ Remove realism-heavy words globally
+  ['hair', 'lighting', 'mood', 'artStyle'].forEach(k => {
+    if (components[k]) {
+      components[k] = this.stripRealism(components[k]);
+    }
+  });
+
+  // 4️⃣ Anime lighting and art style redefinition
+  const lightingTail = this.animeLighting(preferences);
+  components.lighting = lightingTail;
+
+  const animeTail = this.hardenAnimeArtStyle(components.artStyle);
+  components.artStyle = animeTail;
+}
+
+// Soften harsh realism and convert photo phrasing to painterly language
+applyPaintingProfile(components, preferences) {
+  if (!components) return;
+  // Prevent literal "painted skin" interpretation
+  if (components.face || components.subject) {
+    ['subject','face'].forEach(key => {
+      if (components[key]) {
+        components[key] = components[key].replace(/\bpainted skin\b/gi, 'smooth skin tone');
+      }
+    });
+  }
+// --- Ensure clear painting context (optimized v4) ---
+if (this.isPaintingActive(preferences, components?.artStyle)) {
+  // Extract main medium keyword, defaulting to "painting"
+  let mediumMatch = (
+    components.artStyle.match(/\b(oil|acrylic|watercolor|gouache|mixed\s*media)\b/i) || []
+  )[0] || 'painting';
+
+  // Remove redundant "painting" word if it exists
+  mediumMatch = mediumMatch.replace(/\bpainting\b/i, '').trim();
+
+  // Determine the base subject text
+  let subj = (components.subject || 'a woman').trim();
+
+  // Remove leading "a"/"an" and redundant "painting of" phrases
+  subj = subj
+    .replace(/^\s*(a|an)\s+/i, '')
+    .replace(/^(?:oil|acrylic|watercolor|gouache|mixed\s*media)?\s*painting\s*(?:of\s+)?/i, '')
+    .trim();
+
+  // Compose final prefix — guaranteed clean and natural
+  components.subject = `A ${mediumMatch ? mediumMatch.toLowerCase() + ' ' : ''}painting of ${subj}`;
+}
+
+// --- Simplify surface realism (v5 safe for clothing data) ---
+const soften = txt => (txt || '')
+  // remove overly technical or photo-based terms
+  .replace(/\b(high-definition|ultra-detailed|crisp|sharp|photo[-\s]?quality|glossy|specular|bokeh)\b/gi, '')
+  // convert rendering terms to painterly phrasing
+  .replace(/\b(smooth rendering|polished rendering|crisp lines)\b/gi, 'soft blended brushwork')
+  .replace(/\b(mat(te)? finish|soft sheen)\b/gi, 'matte texture')
+  // leave all fabric/material/texture terms intact
+  // refine human feature phrasing only
+  .replace(/\bskin\b/gi, 'skin tone')
+  .replace(/\bface\b/gi, 'facial features')
+  .trim();
+
+  // --- Diffuse lighting ---
+  const painterLighting = this.dataLoader.randomChoice([
+    'diffused soft lighting with gentle tonal blending',
+    'painterly illumination emphasizing brushstroke gradients',
+    'subtle interplay of warm and cool tones',
+    'soft ambient glow with visible paint texture'
+  ]);
+
+  // --- Painterly style tail ---
+  const technique = this.dataLoader.randomChoice([
+    'visible brushstrokes',
+    'layered paint texture',
+    'soft blended edges',
+    'impasto highlights',
+    'expressive color blending',
+    'canvas grain texture'
+  ]);
+  const medium = this.dataLoader.randomChoice([
+    'oil painting',
+    'acrylic painting',
+    'watercolor',
+    'mixed media painting'
+  ]);
+
+// --- Apply transformations ---
+components.face = soften(components.face);
+components.hair = soften(components.hair);
+components.clothing = soften(components.clothing);
+components.setting = soften(components.setting);
+
+// --- Painterly Lighting Normalizer ---
+if (components.lighting) {
+  components.lighting = components.lighting
+    // soften photographic lighting terms
+    .replace(/\bunder radiant daylight\b/gi, 'bathed in soft ambient hues')
+    .replace(/\bsunlit luminous tones\b/gi, 'harmonized with warm diffused light')
+    .replace(/\bbright sunlight\b/gi, 'soft golden light')
+    .replace(/\b(soft )?ambient glow\b/gi, 'gentle painterly illumination')
+    .replace(/\b(gentle )?accents\b/gi, 'balanced tonal accents')
+    .replace(/\bradiant daylight\b/gi, 'diffused daylight atmosphere')
+    .replace(/\bnatural light\b/gi, 'artistic ambient light')
+    .replace(/\b(bounce light|fill light|rim lighting|backlight)\b/gi, 'tonal brushwork highlights')
+    .trim();
+}
+
+// apply your generated painterly lighting base
+components.lighting = painterLighting;
+
+// finalize painterly phrasing
+components.artStyle = `rendered in ${medium}, featuring ${technique}, painterly composition, diffused edges, soft brushwork`;
+components.mood = (components.mood || '').replace(
+  /\b(realistic|dramatic|documentary|cinematic)\b/gi,
+  'expressive painterly mood'
+);
+}
 
     // Main generation method - UPDATED
     async generatePrompt(preferences = {}, options = {}) {
@@ -113,9 +342,14 @@ renderPrompt(components, { useSemanticStack = false } = {}) {
         const useSemanticStack = !!normalizedPreferences.semanticStack;
         const components = this.buildPromptComponents(normalizedPreferences);
 
-        return this.renderPrompt(components, {
-            useSemanticStack,
-        });
+// 🧩 Apply style-specific transformations
+if (this.isAnimeActive(normalizedPreferences, components?.artStyle)) {
+  this.applyAnimeProfile(components, normalizedPreferences);
+} else if (this.isPaintingActive(normalizedPreferences, components?.artStyle)) {
+  this.applyPaintingProfile(components, normalizedPreferences);
+}
+
+return this.renderPrompt(components, { useSemanticStack });
     }
 
     async generatePromptBatch(preferencesList = [], options = {}) {
@@ -145,13 +379,30 @@ renderPrompt(components, { useSemanticStack = false } = {}) {
         return results;
     }
 
-    // Generate subject - ENHANCED
-    generateSubject() {
-        const ageDescriptor = this.dataLoader.getRandomFrom('subjects.json', 'age_descriptors');
-        const subjectType = this.dataLoader.getRandomFrom('subjects.json', 'subject_types');
+// === SUBJECT GENERATOR (Beachwear age safety fix) ===
+generateSubject(preferences = {}) {
+  // Pull all age descriptors and subject types
+  let ageDescriptors = this.dataLoader.getAllFrom('subjects.json', 'age_descriptors') || [];
+  const subjectTypes = this.dataLoader.getAllFrom('subjects.json', 'subject_types') || [];
 
-        return `A ${ageDescriptor} ${subjectType}`;
-    }
+  // 🧩 If Beachwear is active, filter out mature / older age phrases
+  const style = (preferences?.clothingStyle || '').toLowerCase();
+  if (style === 'beachwear') {
+    ageDescriptors = ageDescriptors.filter(d =>
+      !/\bmature\b/i.test(d) &&
+      !/\bmiddle[-\s]?aged\b/i.test(d) &&
+      !/\bold(er|est)?\b/i.test(d)
+    );
+    // Safety fallback in case filtering removes all options
+    if (!ageDescriptors.length) ageDescriptors = ['young'];
+  }
+
+  // Pick random age + subject
+  const ageDescriptor = this.dataLoader.randomChoice(ageDescriptors);
+  const subjectType = this.dataLoader.randomChoice(subjectTypes);
+
+  return `A ${ageDescriptor} ${subjectType}`;
+}
 
     generatePose() {
         // Combine all pose categories from poses.json
@@ -167,7 +418,7 @@ renderPrompt(components, { useSemanticStack = false } = {}) {
     }
 
     // NEW: Generate face details
-generateFace() {
+generateFace(preferences = {}) {
     const skinTone = this.generateSkinTone();
     const eyeDetails = this.generateEyeDetails();
     
@@ -231,7 +482,16 @@ generateFace() {
         }
     ];
     
-const profile = this.dataLoader.randomChoice(faceProfiles);
+let filteredProfiles = faceProfiles;
+
+// 🎨 Cartoon & Anime: avoid "camera" phrasing
+if (this.isAnimeActive(preferences, preferences.artStyle) || /cartoon|toon/i.test(preferences.artStyle || '')) {
+  filteredProfiles = faceProfiles.filter(p => !/camera/i.test(p.gaze));
+  if (filteredProfiles.length === 0) filteredProfiles = faceProfiles; // fallback
+}
+
+const profile = this.dataLoader.randomChoice(filteredProfiles);
+
 
 // If eyes are closed, don't mention eye color/shape - just say "eyes closed"
 if (profile.eyesClosed) {
@@ -370,7 +630,7 @@ generateClothing(preferences = {}) {
 
 if (diversity > 80) {
     // 🔹 High diversity → include all categories, but limit outerwear frequency
-    const allCategories = ['tops', 'bottoms', 'dresses', 'outerwear', 'cultural-wear'];
+    const allCategories = ['tops', 'bottoms', 'dresses', 'outerwear', 'cultural-wear', 'beachwear'];
     clothingCategory = this.dataLoader.randomChoice(allCategories);
 
     // Optional limiter for outerwear (max ~40% chance)
@@ -390,27 +650,34 @@ if (diversity > 80) {
 
     // --- 🎯 Apply chosen category and generate clothing accordingly ---
     // Cultural wear always overrides because it’s a complete outfit
-    if (stylePreference === 'cultural' || clothingCategory === 'cultural-wear') {
-        return this.generateCulturalWear(preferences);
-    }
+if (stylePreference === 'cultural' || clothingCategory === 'cultural-wear') {
+  return this.generateCulturalWear(preferences);
+}
+if (stylePreference === 'beachwear' || clothingCategory === 'beachwear') {
+  return this.generateBeachwear(preferences);
+}
 
     // Choose between complete outfit or single piece mode
     if (outfitCompleteness === 'complete') {
         return this.generateCompleteOutfit(preferences);
     } else {
         // Single-piece mode draws from chosen category
-        switch (clothingCategory) {
-            case 'tops':
-                return this.generateTop(preferences);
-            case 'bottoms':
-                return this.generateBottom(preferences);
-            case 'dresses':
-                return this.generateDress(preferences);
-            case 'outerwear':
-                return this.generateOuterwear(preferences);
-            default:
-                return this.generateTop(preferences);
-        }
+switch (clothingCategory) {
+  case 'tops':
+    return this.generateTop(preferences);
+  case 'bottoms':
+    return this.generateBottom(preferences);
+  case 'dresses':
+    return this.generateDress(preferences);
+  case 'outerwear':
+    return this.generateOuterwear(preferences);
+  case 'cultural-wear':
+    return this.generateCulturalWear(preferences);
+  case 'beachwear':   // 🆕 new case
+    return this.generateBeachwear(preferences);
+  default:
+    return this.generateTop(preferences);
+}
     }
 }
 
@@ -453,12 +720,18 @@ const OUTER_RE = /\b(coat|overcoat|trench coat|puffer coat|parka|anorak|jacket|b
 const BOTTOM_RE = /\b(skirt|skort|pants|jeans|trousers|shorts|culottes|capris|leggings|joggers|cargo|chinos|palazzo|wide[- ]?leg|flare pants)\b/i;
  
         const segments = [];
-        const diversity = typeof preferences?.outfitDiversity === 'number'
-            ? preferences.outfitDiversity
-            : 50;
-        const layeringPreference = typeof preferences?.layeringPreference === 'number'
-            ? preferences.layeringPreference
-            : diversity;
+let diversity = typeof preferences?.outfitDiversity === 'number'
+  ? preferences.outfitDiversity
+  : 50;
+let layeringPreference = typeof preferences?.layeringPreference === 'number'
+  ? preferences.layeringPreference
+  : diversity;
+
+// Fashion Logic: softly rein in chaos (local, non-destructive)
+if (preferences.fashionLogic) {
+  diversity = Math.min(diversity, 55);            // avoid extreme outfit mixing
+  layeringPreference = Math.min(layeringPreference, 60); // fewer “extra” layers
+}
 
         const connectors = {
             pair: diversity >= 60 ? 'paired with' : 'styled with',
@@ -813,10 +1086,105 @@ if (!clothingItem) {
         return this.assembleSingleGarment(clothingItem, '', preferences, inferredType);
     }
 
+generateBeachwear(preferences = {}) {
+  // 1) Base swim pick
+  let swimType = this.dataLoader.getRandomFrom('beachwear.json', 'swimwear_types') || 'bikini';
+
+  // 2) Build swim as a garment that goes through the shared pipeline
+  //    (so Color Boldness, Embellishments, Fashion Logic, Lighting Mood all apply)
+  let swimDesc = this.assembleSingleGarment(
+    swimType,               // clothingItem
+    '',                     // neckline/sleeves (swim will get details from clothing pools if any)
+    preferences,
+    'top'                   // garmentType placeholder (fit/detail rules apply safely)
+  );
+
+  // 3) Apply beach-specific material/pattern/detail phrasing up front
+  const material = this.dataLoader.getRandomFrom('beachwear.json', 'materials');
+  const pattern  = this.dataLoader.getRandomFrom('beachwear.json', 'patterns');
+  const detail   = this.dataLoader.getRandomFrom('beachwear.json', 'details');
+
+  // Insert swim fabric/pattern/detail right after the lead phrase (“wearing a/an …”)
+  // Example target: "wearing a bikini in bright coral nylon, striped pattern with ..."
+  swimDesc = swimDesc
+    .replace(/\b(in\s+[^,]+,)\s*/i, '') // remove the auto "in {color fabric}," to inject swim-specific
+    .replace(/\bwearing\b\s+(?:an?|the)\s+([^,]+)\b/i, (m, item) => {
+      const swimFabric  = material ? `${material}` : '';
+      const color       = this.generateClothingColor(preferences.colorBoldnessChance || 70, material || '');
+      const colorFabric = color && swimFabric ? `${color} ${swimFabric}` : (color || swimFabric || '');
+      const patternPart = pattern ? `${pattern} pattern` : '';
+      const detailPart  = detail ? `featuring ${detail}` : '';
+
+      const pieces = [];
+      if (colorFabric) pieces.push(`in ${colorFabric}`);
+      if (patternPart) pieces.push(patternPart);
+      if (detailPart)  pieces.push(detailPart);
+
+      // Build: "wearing a {item} in {color+material}, {pattern} {detail}"
+      const piecesPart = pieces.length ? ', ' + pieces.join(', ') : '';
+return `wearing a ${item}${piecesPart}`;
+    });
+
+  // 4) Optional coverup that also respects layering & fashionLogic
+  const diversity = typeof preferences?.outfitDiversity === 'number' ? preferences.outfitDiversity : 50;
+  const layering = typeof preferences?.layeringPreference === 'number' ? preferences.layeringPreference : diversity;
+  const coverupBias = Math.min(0.75, Math.max(0.15, (layering / 100))); // 15–75% based on user control
+  const coverup = (Math.random() < coverupBias)
+    ? this.dataLoader.getRandomFrom('beachwear.json', 'coverups')
+    : '';
+
+  if (coverup) {
+    // Route coverup through the garment assembler for texture/tones/etc.
+    const coverupDesc = this.assembleSingleGarment(coverup, '', preferences, 'outerwear')
+      .replace(/^wearing\s+/i, '') // avoid double "wearing"
+      .trim();
+    swimDesc += `, layered with ${coverupDesc}`;
+  }
+
+  // 5) Bright/Cinematic tone mapping already occurs inside assembleSingleGarment,
+  //    so no extra transforms needed here.
+
+// --- Cleanup: strip winter materials if any remain ---
+swimDesc = swimDesc.replace(/\b(fur|wool|tweed|fleece|velvet|suede|puffer|quilted|insulated|shearling)\b/gi, '');
+swimDesc = swimDesc
+  .replace(/\s{2,}/g, ' ')
+  .replace(/,\s*,/g, ', ')
+  .replace(/\s+,/g, ',')
+  .trim();
+// --- Final cleanup: remove any trailing commas/spaces ---
+swimDesc = swimDesc
+  .replace(/\s{2,}/g, ' ')
+  .replace(/,\s*,/g, ', ')
+  .replace(/\s+,/g, ',')
+  .trim();
+
+
+  return swimDesc.trim();
+}
+  
     // NEW: Shared method to assemble garment details (consolidates duplicate code)
     assembleSingleGarment(clothingItem, necklineAndSleeves, preferences = {}, garmentType = 'outfit') {
         const descriptor = this.getGarmentDescriptor(garmentType, clothingItem);
         let fabric = this.dataLoader.getRandomFrom('clothing.json', 'fabric_types');
+// --- ☀️ Beachwear Material & Detail Filter ---
+if ((preferences?.clothingStyle || '').toLowerCase() === 'beachwear') {
+  // Remove cold-weather / heavy fabrics
+  const coldFabrics = /(wool|cashmere|tweed|corduroy|flannel|fleece|fur|shearling|velvet|suede|puffer|down|vinyl|latex|rubber)/i;
+  if (coldFabrics.test(fabric)) {
+    const warmAlternatives = ['cotton', 'linen', 'nylon', 'spandex', 'polyester', 'lycra', 'mesh', 'microfiber'];
+    fabric = this.dataLoader.randomChoice(warmAlternatives);
+  }
+
+  // Prevent winter/structured details or trims from global pools
+  clothingItem = clothingItem
+    .replace(/\b(fur(-| )?trimmed|puff(ed)?|insulated|quilt(ed)?|shearling|parka|storm flap|padded shoulders|structured|tailored)\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+
+
+
         // --- NEW: Fabric-Texture mapping with compatibility + safe fallback ---
 const chooseCompatibleTexture = (fabricName) => {
   const f = (fabricName || '').toLowerCase();
@@ -854,7 +1222,48 @@ const chooseCompatibleTexture = (fabricName) => {
 };
 
 let appliedTexture = chooseCompatibleTexture(fabric);
+// Beachwear: drop heavy-feeling textures if randomly chosen
+if ((preferences?.clothingStyle || '').toLowerCase() === 'beachwear' &&
+    /velvet|suede|corduroy|quilt|padded/i.test(appliedTexture)) {
+  appliedTexture = '';
+}
+
 const willUseDataTexture = !!appliedTexture;
+
+// --- Fashion Logic micro-filters (only when enabled) ---
+if (preferences.fashionLogic) {
+  const name = (clothingItem || '').toLowerCase();
+  const isTop     = /top|blouse|shirt|camisole|bodysuit|sweater|cardigan|turtleneck|polo|henley|corset|bustier/.test(name);
+  const isBottom  = /skirt|pants|jeans|trousers|shorts|leggings|culottes|palazzo|joggers/.test(name);
+  const isDress   = /dress|gown/.test(name);
+  const isOuter   = /coat|jacket|blazer|trench|parka|anorak|puffer|overcoat|kimono|wrap|cardigan/.test(name);
+
+  const f = (fabric || '').toLowerCase();
+
+  // 1) Hard fabric/type disallows
+  if (isTop && /(patent|vinyl|latex|rubber)/.test(f)) {
+    // Re-pick to a woven/luxe/knit safe fabric
+    const safeTop = ['cotton','linen','silk','satin','chiffon','jersey','poplin','voile','lawn','wool','cashmere'];
+    fabric = this.dataLoader.randomChoice(safeTop);
+    appliedTexture = chooseCompatibleTexture(fabric);
+  }
+  if (isBottom && /(chiffon|organza|tulle|lace)/.test(f)) {
+    const safeBottom = ['denim','twill','gabardine','wool','linen','cotton','ponte','leather','faux leather'];
+    fabric = this.dataLoader.randomChoice(safeBottom);
+    appliedTexture = chooseCompatibleTexture(fabric);
+  }
+if (isOuter && /(chiffon|organza|tulle)/.test(f)) {
+  const isBeach = (preferences?.clothingStyle || '').toLowerCase() === 'beachwear';
+  const safeOuter = isBeach
+    ? ['cotton','linen','nylon','polyester','lycra','mesh','microfiber']
+    : ['wool','tweed','cashmere','cotton','gabardine','twill','leather','faux leather','nylon','polyester'];
+  fabric = this.dataLoader.randomChoice(safeOuter);
+  appliedTexture = chooseCompatibleTexture(fabric);
+}
+
+  // 2) Tone down extreme embellishment density later in the pipeline:
+  preferences.__logicReduceEmbellishments = true;
+}
 
         // --- Clothing Fit + Detail Expansion ---
         const pickDescriptor = (source) => {
@@ -885,6 +1294,7 @@ const willUseDataTexture = !!appliedTexture;
         const fitSource = fitSources[garmentType];
         const detailSource = detailSources[garmentType];
 
+    
         if (fitSource) {
             descriptorParts.push(pickDescriptor(fitSource));
         }
@@ -911,7 +1321,9 @@ const surfaceDescriptors = [
 if (willUseDataTexture) {
   clothingItem += `, ${appliedTexture} texture`;
 } else if (Math.random() < 0.6) {
-  const surface = this.dataLoader.randomChoice(surfaceDescriptors);
+  const isBeach = (preferences?.clothingStyle || '').toLowerCase() === 'beachwear';
+  const beachSafeSurfaces = surfaceDescriptors.filter(s => !/velvety|quilt|padded|insulated/i.test(s));
+  const surface = this.dataLoader.randomChoice(isBeach ? beachSafeSurfaces : surfaceDescriptors);
   if (surface) clothingItem += `, ${surface}`;
 }
 
@@ -1095,14 +1507,24 @@ if (preferences?.lightingMood === 'cinematic') {
 
         // Build the description - FIXED STRUCTURE
         const parts = [
-            leadPhrase,
-            necklineAndSleeves,
-            `in ${colorDescription},`,
-            `${patternColor}${pattern} pattern${embellishment}`
-        ].filter(part => part && part.trim().length);
+  leadPhrase,
+  necklineAndSleeves,
+  `in ${colorDescription},`,
+  `${patternColor}${pattern} pattern${embellishment}`
+].filter(part => part && part.trim().length);
 
-        return parts.join(' ');
-    }
+// --- Fashion Logic: optional embellishment density control ---
+if (preferences.__logicReduceEmbellishments) {
+  // keep ~70% of decorative details
+  if (Math.random() >= 0.7) {
+    // light trimming: remove the last embellishment phrase
+    if (parts.length > 3) parts.pop();
+  }
+}
+
+// ✅ Always return after this section
+return parts.join(' ');
+}
 
     getGarmentDescriptor(garmentType, clothingItem) {
         const baseFits = this.dataLoader.getAllFrom('clothing.json', 'garment_fits') || [];
@@ -1648,6 +2070,17 @@ if (preferences.eyewearMode && preferences.eyewearMode !== 'none') {
   if (e) accessories.push(e);
 }
 
+// --- Beach accessory pack: only if Beachwear style selected ---
+const isBeach = (preferences?.clothingStyle || '').toLowerCase() === 'beachwear';
+if (isBeach) {
+  const beachItems = this.generateBeachAccessoryBundle(preferences, accessories);
+  if (beachItems.length) accessories.push(...beachItems);
+}
+if (isBeach && (!preferences.eyewearMode || preferences.eyewearMode === 'random')) {
+  const sunglasses = this.dataLoader.getRandomFrom('eyewear.json', 'sunglasses');
+  if (sunglasses) accessories.push(sunglasses);
+}
+
   if (!accessories.length) return '';
   return `adorned with ${accessories.join(', ')}`;
 }
@@ -1802,6 +2235,40 @@ const eyewearDescription = descriptionParts
 return eyewearDescription;
     }
 
+// === 🏖️ Beach Accessory Helper ===
+// Builds a small optional bundle of beach-themed accessories
+generateBeachAccessoryBundle(preferences = {}, already = []) {
+  const items = [];
+
+  const headwearMode = preferences.headwearMode || 'random';
+  const eyewearMode = preferences.eyewearMode || 'random';
+
+  // ✅ Sunhat (respects headwear mode and avoids duplication)
+  if (headwearMode !== 'off' && !already.some(a => /hat|headband|headscarf|hood/i.test(a))) {
+    const hat = this.dataLoader.getRandomFrom('beach-accessories.json', 'sunhats');
+    if (hat && Math.random() < 0.7) items.push(hat);
+  }
+
+  // ✅ Beach bag
+  const bag = this.dataLoader.getRandomFrom('beach-accessories.json', 'bags');
+  if (bag && Math.random() < 0.7) items.push(bag);
+
+  // ✅ Small extras (scarf, anklet, shell necklace)
+  const extra = this.dataLoader.getRandomFrom('beach-accessories.json', 'extras');
+  if (extra && Math.random() < 0.5) items.push(extra);
+
+  // ✅ Footwear
+  const shoe = this.dataLoader.getRandomFrom('beach-accessories.json', 'footwear');
+  if (shoe && Math.random() < 0.5) items.push(shoe);
+
+  // Trim bundle if Fashion Logic is enabled
+  if (preferences.fashionLogic && items.length > 2) {
+    return items.slice(0, 2);
+  }
+
+  return items;
+}
+
     // NEW: Generate camera details
     generateCamera(pose = '') {
         let shotTypes;
@@ -1861,7 +2328,7 @@ return eyewearDescription;
     }
 
     // UPDATED: Generate setting with explicit materials and colors + hard fallback
-generateSetting(settingPreference = null) {
+generateSetting(settingPreference = null, preferences = {}) {
     let settingFile, category, settingData;
 
     function pickNaturalFallback(self) {
@@ -1870,7 +2337,17 @@ generateSetting(settingPreference = null) {
         const fbCategory = self.dataLoader.randomChoice(fallbackCategories);
         return self.dataLoader.getRandomFrom(fallbackFile, fbCategory);
     }
-
+// --- Beachwear contextual override ---
+if ((preferences?.clothingStyle || '').toLowerCase() === 'beachwear') {
+  const beachSettings = this.dataLoader.getAllFrom('natural.json', 'water_environments');
+  if (Array.isArray(beachSettings) && beachSettings.length) {
+    const pick = this.dataLoader.randomChoice(beachSettings);
+    return {
+      description: `positioned ${pick.preposition} ${pick.article} ${pick.name}`,
+      hasTrees: false
+    };
+  }
+}
     if (settingPreference === 'historical') {
         settingFile = 'historical.json';
         const categories = ['ancient_periods', 'medieval_settings', 'renaissance_venues', 'outdoor_historical'];
@@ -2036,10 +2513,15 @@ switch (preferences?.lightingMood) {
         break;
 }
 
-// Always prefer daylight phrasing even if scene isn’t explicitly “natural”
-if (!daylightWords.test(lightingEffect)) {
-    lightingEffect += ', under bright daylight';
+// At the end of generateLighting(), where you currently append daylight:
+const conflictWords = /\b(moonlight|sunset|sunrise|dusk|dawn|twilight|night|evening|overcast|storm|rain|fog|mist|neon|cyberpunk|studio|indoors|interior|stage|candlelight|torchlight|lantern|underwater|volcanic|space|enchanted|fantasy)\b/i;
+
+// Only add "under bright daylight" if we don't already have a daylight synonym
+// and there's no conflicting time/setting keyword present.
+if (!daylightWords.test(lightingEffect) && !conflictWords.test(lightingEffect)) {
+  lightingEffect += ', under bright daylight';
 }
+
 
 // Ensure final phrasing reads cleanly
 lightingEffect = lightingEffect
@@ -2082,9 +2564,23 @@ return lightingEffect;
 }
 
 
-    // UPDATED: Generate art style with explicit technical details
+// ===================== PATCH: generateArtStyle + sanitizer micro-fix =====================
+
+// REPLACE your existing generateArtStyle(...) with this version
 generateArtStyle(stylePreference = null, preferences = {}) {
     let styleCategory, style;
+
+    // --- 🟣 Anime Priority Override ---
+    const forceAnime = (stylePreference === 'anime');
+    if (forceAnime) {
+        const technique = this.dataLoader.getRandomFrom('art-styles.json','anime_techniques') 
+            || 'cel-shaded';
+        const quality = this.dataLoader.getRandomFrom('art-styles.json','rendering_quality') 
+            || 'clean linework';
+        const palette = this.dataLoader.getRandomFrom('art-styles.json','anime_color_palettes') 
+            || 'limited color palette';
+        return `illustrated in anime style, ${technique}, ${quality}, ${palette}`;
+    }
 
     if (stylePreference === 'photorealistic') {
         styleCategory = 'photorealistic_styles';
@@ -2129,92 +2625,85 @@ generateArtStyle(stylePreference = null, preferences = {}) {
     const technique = this.dataLoader.getRandomFrom('art-styles.json', 'artistic_techniques');
     const quality = this.dataLoader.getRandomFrom('art-styles.json', 'rendering_quality');
     
-// --- Art Style Harmony (mood-aware) ---
-let artStyleOptions = [
-  // Photography-first styles (neutral)
-  'editorial photography',
-  'studio fashion photography',
-  'natural photography style',
-  'street fashion photography',
-  'film photography style',
-  'documentary style',
-  'lifestyle photography',
-  'candid photography',
-  'luxury brand photography',
-  'harper\'s bazaar style',
-  'avant-garde editorial style',
-  // Painterly / illustrative (bright-leaning)
-  'digital art',
-  'stylized illustration',
-  'character design',
-  'vector art',
-  'anime style',
-  'modern anime style',
-  'seinen style',
-  'kawaii style',
-  'disney-inspired style',
-  'low-poly art',
-  'oil painting',
-  'watercolor',
-  'contemporary painting',
-  // Retro/film looks (cinematic-leaning)
-  'polaroid style',
-  'sepia tone style',
-  'hyperrealistic style'
-];
+    // --- Art Style Harmony (mood-aware) ---
+    let artStyleOptions = [
+      // Photography-first styles (neutral)
+      'editorial photography',
+      'studio fashion photography',
+      'natural photography style',
+      'street fashion photography',
+      'film photography style',
+      'documentary style',
+      'lifestyle photography',
+      'candid photography',
+      'luxury brand photography',
+      'harper\'s bazaar style',
+      'avant-garde editorial style',
+      // Painterly / illustrative (bright-leaning)
+      'digital art',
+      'stylized illustration',
+      'character design',
+      'vector art',
+      'anime style',
+      'modern anime style',
+      'seinen style',
+      'kawaii style',
+      'disney-inspired style',
+      'low-poly art',
+      'oil painting',
+      'watercolor',
+      'contemporary painting',
+      // Retro/film looks (cinematic-leaning)
+      'polaroid style',
+      'sepia tone style',
+      'hyperrealistic style'
+    ];
 
-// Bias artStyle choices by lighting mood
-if (preferences?.lightingMood === 'cinematic') {
-  // Prefer filmic/photographic realism + editorial looks
-  const cinematicPreferred = [
-    'editorial photography',
-    'studio fashion photography',
-    'film photography style',
-    'documentary style',
-    'street fashion photography',
-    'candid photography',
-    'luxury brand photography',
-    'harper\'s bazaar style',
-    'avant-garde editorial style',
-    'polaroid style',
-    'sepia tone style',
-    'hyperrealistic style'
-  ];
-  // Remove cartoon/bright illustrative styles from the pool
-  artStyleOptions = artStyleOptions
-    // Remove any illustrative, anime, or digital-art styles
-    .filter(s => !/(anime|kawaii|pixar|vector|low-poly|disney|cartoon|illustration|digital art|stylized illustration)/i.test(s))
-    // Put cinematicPreferred at the front to increase selection odds
-    .filter(s => !cinematicPreferred.includes(s));
-  artStyleOptions = [...cinematicPreferred, ...artStyleOptions];
+    // Bias artStyle choices by lighting mood
+    if (preferences?.lightingMood === 'cinematic') {
+      const cinematicPreferred = [
+        'editorial photography',
+        'studio fashion photography',
+        'film photography style',
+        'documentary style',
+        'street fashion photography',
+        'candid photography',
+        'luxury brand photography',
+        'harper\'s bazaar style',
+        'avant-garde editorial style',
+        'polaroid style',
+        'sepia tone style',
+        'hyperrealistic style'
+      ];
+      artStyleOptions = artStyleOptions
+        .filter(s => !/(anime|kawaii|pixar|vector|low-poly|disney|cartoon|illustration|digital art|stylized illustration)/i.test(s));
+      artStyleOptions = [...cinematicPreferred, ...artStyleOptions.filter(x => !cinematicPreferred.includes(x))];
+    } else if (preferences?.lightingMood === 'bright') {
+      const brightPreferred = [
+        'natural photography style',
+        'lifestyle photography',
+        'editorial photography',
+        'street fashion photography',
+        'digital art',
+        'stylized illustration',
+        'vector art',
+        'anime style',
+        'kawaii style',
+        'modern anime style',
+        'disney-inspired style',
+        'oil painting',
+        'watercolor',
+        'contemporary painting'
+      ];
+      artStyleOptions = artStyleOptions.filter(s => !/(noir|filmic|low-key)/i.test(s));
+      artStyleOptions = [
+        ...brightPreferred.filter(x => artStyleOptions.includes(x)),
+        ...artStyleOptions.filter(x => !brightPreferred.includes(x))
+      ];
+    }
 
-} else if (preferences?.lightingMood === 'bright') {
-  // Prefer bright, lively styles
-  const brightPreferred = [
-    'natural photography style',
-    'lifestyle photography',
-    'editorial photography',
-    'street fashion photography',
-    'digital art',
-    'stylized illustration',
-    'vector art',
-    'anime style',
-    'kawaii style',
-    'modern anime style',
-    'disney-inspired style',
-    'oil painting',
-    'watercolor',
-    'contemporary painting'
-  ];
-  // De-emphasize overtly filmic/retro styles
-  artStyleOptions = artStyleOptions
-    .filter(s => !/(noir|filmic|low-key)/i.test(s));
-  // Put brightPreferred at the front
-  artStyleOptions = [
-    ...brightPreferred.filter(x => artStyleOptions.includes(x)),
-    ...artStyleOptions.filter(x => !brightPreferred.includes(x))
-  ];
-}
+    // 🔎 NEW: De-duplicate the pool to avoid identical repeats from multiple categories
+    artStyleOptions = [...new Set(artStyleOptions)];
 
 // Respect any explicit stylePreference, otherwise pick from mood-aware options
 let artStyle;
@@ -2222,68 +2711,78 @@ if (stylePreference && typeof stylePreference === 'string' && stylePreference.tr
   artStyle = stylePreference;
 } else {
   artStyle = this.dataLoader.randomChoice(artStyleOptions);
+  // ✅ Use mood-weighted result as primary style
+  style = artStyle;
 }
 
-// --- Smart Color Grading + Lighting Mood Harmony ---
+    // --- Smart Color Grading + Lighting Mood Harmony ---
+    let gradingOptions = [];
+    switch (preferences?.lightingMood) {
+        case 'bright':
+            gradingOptions = [
+                'warm golden color grading',
+                'vibrant saturated tones with sunny highlights',
+                'radiant pastel palette with soft warm glow',
+                'bright sunlit tones with luminous contrast',
+                'rich golden-hour color balance',
+                'light airy palette with gentle warmth'
+            ].map(opt => opt.replace(/\bcool\b/gi, 'warm').replace(/\bdesaturated\b/gi, 'radiant'));
+            break;
+        case 'cinematic':
+            gradingOptions = [
+                'cool desaturated tones with dramatic shadows',
+                'deep teal-orange contrast palette',
+                'muted moody color grading',
+                'low-key cinematic palette with cool highlights',
+                'subtle filmic tones with high contrast',
+                'dark neutral tones with cool ambient lighting'
+            ];
+            break;
+        case 'neutral':
+        default:
+            gradingOptions = [
+                'balanced natural color grading',
+                'realistic daylight color palette',
+                'soft neutral tones with gentle highlights',
+                'moderate saturation and balanced warmth',
+                'subtle cinematic tone mapping',
+                'vivid but natural contrast palette'
+            ];
+            break;
+    }
 
-let gradingOptions = [];
+    // Check if outfit might qualify as monochrome
+    const clothingSegment = (this.lastGeneratedClothing || '').toLowerCase();
+    const multiHueIndicators = /(accent trim|multi|pattern|striped|polka|checkered|ombre|gradient|kaleidoscope|hologram|fractal|contrast|vivid)/i;
+    const singleToneIndicators = /(solid|tonal|neutral|muted|uniform|matching|single-color|monotone|one tone)/i;
 
-// Adjust color palette bias based on lighting mood
-switch (preferences?.lightingMood) {
-    case 'bright':
-        gradingOptions = [
-            'warm golden color grading',
-            'vibrant saturated tones with sunny highlights',
-            'radiant pastel palette with soft warm glow',
-            'bright sunlit tones with luminous contrast',
-            'rich golden-hour color balance',
-            'light airy palette with gentle warmth'
-        ];
-                gradingOptions = gradingOptions.map(opt =>
-    opt.replace(/\bcool\b/gi, 'warm').replace(/\bdesaturated\b/gi, 'radiant')
-);
-        break;
+    const hasAccent = multiHueIndicators.test(clothingSegment);
+    const isSingleTone = singleToneIndicators.test(clothingSegment);
+    if (isSingleTone && !hasAccent) {
+        gradingOptions.push('monochromatic color scheme');
+    }
 
-    case 'cinematic':
-        gradingOptions = [
-            'cool desaturated tones with dramatic shadows',
-            'deep teal-orange contrast palette',
-            'muted moody color grading',
-            'low-key cinematic palette with cool highlights',
-            'subtle filmic tones with high contrast',
-            'dark neutral tones with cool ambient lighting'
-        ];
-        break;
+    // NOTE: make this mutable for cleanup steps below
+    let colorGrading = this.dataLoader.randomChoice(gradingOptions);
 
-    case 'neutral':
-    default:
-        gradingOptions = [
-            'balanced natural color grading',
-            'realistic daylight color palette',
-            'soft neutral tones with gentle highlights',
-            'moderate saturation and balanced warmth',
-            'subtle cinematic tone mapping',
-            'vivid but natural contrast palette'
-        ];
+    // === Cleanups / De-dupes / Harmonizers ===
 
-        break;
-}
+    // 1) PALETTE de-dupe: if outfit already used a "... palette" descriptor, strip palette phrasing from grading
+    if (/palette/.test(clothingSegment) && /palette/.test((colorGrading || '').toLowerCase())) {
+        colorGrading = colorGrading
+            .replace(/\b[\w\s-]*palette\b(?![\w-])/gi, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
 
-// Check if outfit might qualify as monochrome
-const clothingSegment = (this.lastGeneratedClothing || '').toLowerCase();
-const multiHueIndicators = /(accent trim|multi|pattern|striped|polka|checkered|ombre|gradient|kaleidoscope|hologram|fractal|contrast|vivid)/i;
-const singleToneIndicators = /(solid|tonal|neutral|muted|uniform|matching|single-color|monotone|one tone)/i;
-
-const hasAccent = multiHueIndicators.test(clothingSegment);
-const isSingleTone = singleToneIndicators.test(clothingSegment);
-
-if (isSingleTone && !hasAccent) {
-    gradingOptions.push('monochromatic color scheme');
-}
-
-
-const colorGrading = this.dataLoader.randomChoice(gradingOptions);
-
+    // 2) Normalize photography phrases (so they don't fight lighting strings)
+    //    and prevent “high/low contrast lighting” duplication with lighting generator.
+    if (typeof colorGrading === 'string') {
+        colorGrading = colorGrading
+            .replace(/\b(high|low)\s+contrast(\s+lighting)?\b/gi, '')       // drop lighting wordings here
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
 
     // Specific entries that should NOT get "style" added even if in a category that normally adds it
     const noStyleEntries = [
@@ -2327,13 +2826,10 @@ const colorGrading = this.dataLoader.randomChoice(gradingOptions);
     
     // Determine if we should add "style" suffix
     if (noStyleEntries.includes(style)) {
-        // These specific entries never get "style" added
         stylePhrase = style;
     } else if (addStyleSuffix.includes(styleCategory)) {
-        // Category normally adds "style"
         stylePhrase = `${style} style`;
     } else {
-        // Don't add "style"
         stylePhrase = style;
     }
     
@@ -2352,6 +2848,20 @@ const colorGrading = this.dataLoader.randomChoice(gradingOptions);
         verb = 'created in';
     }
 
+    // 3) Painting redundancy & digital-painting double “painting”
+    if (verb.includes('rendered in')) {
+        // if we already say "rendered in", don't need trailing "painting" word inside style label
+        stylePhrase = (stylePhrase || '').replace(/\b(painting|painted)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+    }
+    // General "painting painting" de-dupe just in case
+    stylePhrase = stylePhrase.replace(/\bpainting\s+painting\b/gi, 'painting');
+
+    // 4) Photography phrase softening for smoother merge with lighting
+    stylePhrase = stylePhrase
+        .replace(/\bnatural light photography\b/gi, 'natural photography')
+        .replace(/\bstudio photography\b/gi, 'studio setting');
+
+    // Final compose
     return `${verb} ${stylePhrase}, featuring ${technique}, ${quality}, and ${colorGrading}`;
 }
 
@@ -2422,90 +2932,116 @@ const colorGrading = this.dataLoader.randomChoice(gradingOptions);
 
 
     }
-// === ENHANCED SANITIZER (optimized & consolidated 2025-10-31) ===
+// === FINAL SANITIZER v4 (2025-11-09 – full batch audit) ===
 sanitizePromptText(text) {
   if (!text) return text;
 
-  // --- 1️⃣ TYPO & BASIC NORMALIZATION ---
+  // --- 1️⃣ Basic normalization ---
   const typoMap = {
     natrual: "natural",
     enviromental: "environmental",
     saturared: "saturated",
-    tranquiltiy: "tranquility",
-    "jewel tone": "jewel-tone",
-    "monochrome color scheme": "monochromatic color scheme"
+    tranquiltiy: "tranquility"
   };
   for (const [bad, good] of Object.entries(typoMap)) {
-    const re = new RegExp(`\\b${bad}\\b`, "gi");
-    text = text.replace(re, good);
+    text = text.replace(new RegExp(`\\b${bad}\\b`, "gi"), good);
   }
 
-  // --- 2️⃣ INTENSITY & ADJECTIVE NORMALIZATION ---
+  // --- 2️⃣ Duplicate words / intensifiers ---
   text = text
-    .replace(/\b(\w+)\s+\1\b/gi, "$1") // remove duplicate words (covers bright bright etc.)
+    .replace(/\b(\w+)\s+\1\b/gi, "$1")
     .replace(/\bvery\s+very\b/gi, "very")
-    .replace(/\bultra\s+dark\s+deep\b/gi, "very dark")
-    .replace(/\bneon\s+bright\b/gi, "neon")
-    .replace(/\bhighly\s+saturated\s+saturated\b/gi, "highly saturated")
-    .replace(/\b(highly|deeply|fully)\s+(saturated|detailed|colored)\s+\2\b/gi, "$1 $2")
-    .replace(/\b(subtly colored|muted|pale|soft)\s+(vivid|bright|intense|bold)\b/gi, "$2")
-    .replace(/\b(vivid|bright|intense|bold)\s+(muted|pale|soft)\b/gi, "$1");
+    .replace(/\b(soft|bright|vivid|radiant)\s+\1\b/gi, "$1");
 
-  // --- 3️⃣ LIGHTING & PHRASE NORMALIZATION ---
+  // --- 3️⃣ “Creating …” chains ---
   text = text
-    .replace(/creating ([^,]+),\s*soft fill/gi, "creating $1 with soft fill")
-    .replace(/\bwith soft fill fill\b/gi, "with soft fill")
-    .replace(/\bstrong shadows with with\b/gi, "strong shadows with")
-    .replace(/,\s*creating\s+/gi, "; creating ") // tidy comma before “creating”
-    .replace(/creating ([^,]+),\s*creating/gi, "creating $1 and creating");
+    .replace(/(;?\s*creating[^;]+)(;?\s*creating[^;]+)/gi, "$1")
+    .replace(/(;?\s*creating[^;]+)(;?\s*creating[^;]+)/gi, "$1");
 
-  // --- 4️⃣ CONTRADICTIONS & CONTEXT FIXES ---
+  // --- 4️⃣ Look/style redundancy ---
   text = text
-    .replace(/\bcool\s+\w+\s+warm\b/gi, "cool")
-    .replace(/\bwarm\s+\w+\s+cool\b/gi, "warm")
-    .replace(/\bcool tone warm tone\b/gi, "cool tone")
-    .replace(/\bon skin on skin\b/gi, "on skin")
-    .replace(/\bunder bright daylight(,?\s*under bright daylight)+/gi, "under bright daylight")
-    .replace(/\b(center|middle|side|off-center) part(,?\s*(center|middle|side|off-center) part)+/gi, "$1 part");
+    .replace(/\b(creating a\s+[\w-]+\s+look)(,?\s*\1)+/gi, "$1")
+    .replace(/\b(look|style)\s+\1\b/gi, "$1");
 
-  // --- 5️⃣ LIGHTING-CONTRAST CLEANUP ---
+  // --- 5️⃣ Palette / lighting de-dupe ---
   text = text
-    .replace(/\b(high|soft|gentle|deep|low-key)\s+contrast( lighting)?(,)?/gi, "")
-    .replace(/\b(lighting|contrast)\s+\1\b/gi, "$1")
-    .replace(/\b(high contrast|soft luminous)\s+(tone|lighting)\s+\1\b/gi, "$1 $2");
+    .replace(/\b(radiant\s+pastel\s+palette[^\.;]*)[,;]\s*\1\b/gi, "$1")
+    .replace(/\b(low-key cinematic palette[^\.;]*)[,;]\s*\1\b/gi, "$1")
+    .replace(/\b(on skin)\s+\1\b/gi, "$1");
 
-  // --- 6️⃣ DUPLICATE SEQUENCES & PREPOSITIONS ---
+  // --- 6️⃣ Style clause repetition ---
   text = text
-    .replace(/\b((?:\w+\s+){1,3})\1\b/gi, "$1") // repeated short phrases
-    .replace(/\b(on|in|at|with|by|for|to|from)\s+\1\b/gi, "$1");
+    .replace(/\b(illustrated|rendered|shot)\s+in\s+([\w\s-]+?)\s+style,?\s+(?:illustrated|rendered|shot)\s+in\s+\2\s+style\b/gi, "$1 in $2 style")
+    .replace(/\b(illustrated|rendered|shot)\s+in\s+(anime|kawaii|seinen|manga)\s+style,?\s+(?:illustrated|rendered|shot)\s+in\s+(anime|kawaii|seinen|manga)\s+style\b/gi, "$1 in $2 style");
 
-  // --- 7️⃣ DAYLIGHT & PHRASE REDUNDANCIES (merged variants) ---
-  text = text.replace(
-    /\bunder\s+(bright|radiant)\s+daylight(,?\s*under\s+(bright|radiant)\s+daylight)+/gi,
-    "under $1 daylight"
-  );
-
-  // --- 8️⃣ POLISH & MICRO FIXES ---
+  // --- 7️⃣ Article (“a” / “an”) correction ---
+  // special cases where "u"/"eu" sound like consonant
   text = text
-    .replace(/\bluminouss[, ]?/gi, "luminous ")
-    .replace(/on hair and shoulders[^,]*on skin/gi, "on hair and shoulders")
-    .replace(/\bbalanced,\s*complementary\s+warm,\s*cool\s+tones\b/gi, "balanced warm and cool tones")
-    .replace(/\bcomplementary\s+warm,\s*cool\s+tones\b/gi, "balanced warm and cool tones")
-    .replace(/\b(vivid|bright|neon)\s+(vivid|bright|neon)\s+(\w+)/gi, "$1 $3") // triple adjective stack
-    .replace(/\b(bright|vivid|neon)\s+\1\s+\1\b/gi, "$1")                     // triple intensity
-    .replace(/(creating\s+strong\s+shadows,\s*soft\s*fill)(,?\s*\1)+/gi, "$1");
+    .replace(/\ba\s+([aeiou])/gi, "an $1")
+    .replace(/\ban\s+(?=(?:unique|university|unicorn|user|europe|euro|ukulele)\b)/gi, "a ")
+    .replace(/\ban\s+([^aeiou])/gi, "a $1");
 
-  // --- 9️⃣ COMMA & SPACING NORMALIZATION (single final run) ---
+  // --- 8️⃣ Punctuation + spacing ---
   text = text
     .replace(/,\s*,+/g, ", ")
     .replace(/(,\s*){2,}/g, ", ")
+    .replace(/;\s*;/g, ";")
     .replace(/\s{2,}/g, " ")
-    .trim();
+    .replace(/\s+,/g, ",")
+    .replace(/,(\s*[;:])/g, "$1")
+    .replace(/\s+;/g, ";");
 
-  return text;
+// --- 9️⃣ FINAL POLISH (Post-Batch Edge Cases) ---
+text = text
+  // Remove immediate "texture texture", "pattern pattern"
+  .replace(/\b(texture|pattern|fabric|material)\s+\1\b/gi, "$1")
+  // Merge sequential 'illustrated/rendered/shot in' repetitions
+  .replace(/\b(illustrated|rendered|shot)\s+in\s+([\w\s-]+?)\s*(?:,?\s*\1\s+in\s+\2\s*)+/gi, "$1 in $2 ")
+  // Collapse duplicate anime-style mentions
+  .replace(/\b(?:illustrated|drawn|shot)\s+in\s+(anime|kawaii|seinen)\s+style[^;,.]*?(?:,\s*(?:illustrated|drawn|shot)\s+in\s+\1\s+style)+/gi, "$1 style")
+  // Merge duplicate 'rendered in <medium>' sequences
+  .replace(/\brendered\s+in\s+([\w\s-]+?\bpainting)\b[^;,.]*?(?:,\s*rendered\s+in\s+\1\b)+/gi, "rendered in $1")
+  // Remove stacked 'under radiant/bright daylight'
+  .replace(/\b(under\s+(?:radiant|bright)\s+daylight)[^;,.]*?(?:,\s*\1)+/gi, "$1")
+  // Merge back-to-back palette phrases
+  .replace(/\b([\w\s-]*palette[^\.;]*)(?:[,;]\s*\1)+/gi, "$1")
+  // Fix 'a hour' → 'an hour', 'an unicorn' → 'a unicorn'
+  .replace(/\ba\s+(hour|honor|heir)\b/gi, "an $1")
+  .replace(/\ban\s+(unicorn|universe|user|euro|eureka|ukulele)\b/gi, "a $1")
+  // Merge duplicate 'creating' phrases
+  .replace(/(;?\s*creating[^;]+)(;?\s*creating[^;]+)/gi, "$1")
+  // Collapse trailing repeated sentiment words
+  .replace(/\b(\w+)\s+\1\b(?=[\.,;]|$)/gi, "$1")
+  // Remove comma after 'under radiant daylight' when followed by verb
+  .replace(/(under\s+(?:radiant|bright)\s+daylight),\s+(?=[a-z])/gi, "$1 ")
+
+// --- 🧩 FINAL MICRO-FIX EXTENSION (v8 – 2025-11-09) ---
+  .replace(/\b(?:illustrated|rendered|shot|drawn)\s+in\s+([\w\s-]+?)\s+style(?:[^;,.]*?(?:[,;]\s*(?:illustrated|rendered|shot|drawn)\s+in\s+[\w\s-]+?\s+style)+)+/gi, "illustrated in $1 style")
+  .replace(/\b(?:illustrated|rendered|shot|drawn)\s+in\s+(?:anime|kawaii|manga|seinen)\s+style[^;,.]*?(?:[,;]\s*(?:illustrated|rendered|shot|drawn)\s+in\s+(?:anime|kawaii|manga|seinen)\s+style)+/gi, "illustrated in anime style")
+  .replace(/\brendered\s+in\s+[\w\s-]+?\s+(?:painting|media)(?:[^;,.]*?,\s*rendered\s+in\s+[\w\s-]+?\s+(?:painting|media))+/gi,
+    m => {
+      const last = m.split(/rendered\s+in\s+/).pop().trim();
+      return `rendered in ${last}`;
+    })
+  .replace(/\b([\w\s-]*palette[^\.;]*)(?:[,;]\s*\1)+/gi, "$1")
+  .replace(/\b(under\s+(?:radiant|bright)\s+daylight)[^;,.]*?(?:[,;]\s*\1)+/gi, "$1")
+  .replace(/\b(texture|fabric|pattern|panels|surface|material)\s+\1\b/gi, "$1")
+  .replace(/(under\s+(?:radiant|bright)\s+daylight),\s+(?=\b\w+(?:ing|ed)\b)/gi, "$1 ")
+  .replace(/\brendered\s+in\s+(?:oil|watercolor|acrylic|mixed media)[^;,.]*[,;]\s*(?:illustrated|drawn)\s+in\s+(anime|kawaii|manga|seinen)\s+style/gi, "illustrated in $1 style")
+
+// --- 🎯 Batch-tail cleanups (2025-11-09 post-batch) ---
+  .replace(/\b(filmic|cinematic|moody|subtle)\s+tones\s+with,?/gi, '$1 tones,')
+  .replace(/\b(color|tonal|grading)\s+balance\s+with,?/gi, '$1 balance,')
+  .replace(/,\s*with\s+(?:cinematic\s+tonality|low-key\s+cinematic\s+lighting)(?:,\s*with\s+\1)+/gi, ', with $1')
+  .replace(/(?:,\s*with\s+)+/gi, ', with ')
+  .replace(/,\s*with\s*(?=[;,.]|$)/gi, '')
+  .replace(/\b(rendered|illustrated|shot|drawn)\s+in\s+contemporary\b/gi, '$1 in contemporary style')
+  .replace(/\b([\w -]*palette)(?:[,;]\s*(?:\w+\s+)?\1\b)+/gi, '$1')
+  .replace(/\b(?:illustrated|rendered|shot|drawn)\s+in\s+(?:anime|kawaii|manga|seinen)\s+style(?:[^;,.]*?(?:[,;]\s*(?:illustrated|rendered|shot|drawn)\s+in\s+(?:anime|kawaii|manga|seinen)\s+style)+)+/gi, 'illustrated in anime style')
+  .trim();
+
+return text;
 }
-
-
 
 
     // UPDATED: Assemble the final prompt in correct order

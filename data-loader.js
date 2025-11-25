@@ -21,6 +21,8 @@ class DataLoader {
             'clothing-colors.json',
             'hair-colors.json',
             'clothing.json',
+            'beachwear.json',
+            'beach-accessories.json',
             'subjects.json',
             'fantasy.json',
             'historical.json',
